@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Municipal Login — Nagardarpan</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="css/styles.css" />
+    <style>
+      .login-page {
+        min-height: 100vh;
+        display: grid;
+        place-items: center;
+        padding: 20px;
+        background:
+          radial-gradient(1200px 600px at 10% -10%, rgba(24,224,181,0.08), transparent 50%),
+          radial-gradient(800px 400px at 100% 0%, rgba(67,255,136,0.06), transparent 50%),
+          linear-gradient(180deg, #0b1220 0%, #0a0f1a 100%);
+        position: relative;
+        overflow: hidden;
+      }
+      .login-page::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background-image: radial-gradient(circle at 30% 40%, rgba(24,224,181,0.1), transparent 50%),
+          radial-gradient(circle at 70% 60%, rgba(67,255,136,0.08), transparent 50%);
+        pointer-events: none;
+      }
+      .login-box {
+        position: relative;
+        z-index: 1;
+        width: 100%;
+        max-width: 440px;
+        background: rgba(9, 14, 26, 0.85);
+        backdrop-filter: blur(20px) saturate(160%);
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        border-radius: 20px;
+        padding: 40px;
+        box-shadow: 0 30px 100px rgba(0, 0, 0, 0.6);
+      }
+      .login-box h1 {
+        margin: 0 0 8px;
+        font-size: 28px;
+        letter-spacing: -0.03em;
+        font-weight: 700;
+      }
+      .login-box p {
+        margin: 0 0 32px;
+        color: var(--muted);
+        font-size: 15px;
+      }
+      .login-form {
+        display: grid;
+        gap: 20px;
+      }
+      .form-group {
+        display: grid;
+        gap: 8px;
+      }
+      .form-group label {
+        font-size: 14px;
+        font-weight: 500;
+        color: var(--text);
+        letter-spacing: -0.01em;
+      }
+      .form-group input {
+        width: 100%;
+        padding: 14px 16px;
+        border-radius: 12px;
+        border: 1px solid rgba(255,255,255,0.16);
+        background: rgba(255,255,255,0.04);
+        color: var(--text);
+        font-family: 'Outfit', sans-serif;
+        font-size: 15px;
+        letter-spacing: -0.01em;
+        transition: all 0.2s ease;
+      }
+      .form-group input:focus {
+        outline: none;
+        border-color: var(--accent);
+        background: rgba(255,255,255,0.06);
+        box-shadow: 0 0 0 3px rgba(24,224,181,0.1);
+      }
+      .form-group input::placeholder {
+        color: #8fa0c7;
+      }
+      .login-btn {
+        width: 100%;
+        padding: 14px;
+        border-radius: 12px;
+        border: none;
+        background: linear-gradient(135deg, var(--accent) 0%, #40f5cd 100%);
+        color: #041019;
+        font-family: 'Outfit', sans-serif;
+        font-weight: 600;
+        font-size: 16px;
+        letter-spacing: -0.01em;
+        cursor: pointer;
+        transition: transform 0.12s ease, box-shadow 0.2s ease;
+      }
+      .login-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 12px 32px rgba(24,224,181,0.3);
+      }
+      .back-link {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        color: var(--muted);
+        text-decoration: none;
+        font-size: 14px;
+        margin-top: 20px;
+        transition: color 0.2s ease;
+      }
+      .back-link:hover {
+        color: var(--text);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="login-page">
+      <div class="login-box">
+        <h1>Municipal Login</h1>
+        <p>Access the administrative dashboard</p>
+        <form class="login-form" action="municipal-dashboard.html" method="get">
+          <div class="form-group">
+            <label for="municipal-id">Municipal ID</label>
+            <input type="text" id="municipal-id" name="id" placeholder="Enter your Municipal ID" required />
+          </div>
+          <div class="form-group">
+            <label for="municipal-pass">Password</label>
+            <input type="password" id="municipal-pass" name="password" placeholder="Enter your password" required />
+          </div>
+          <button type="submit" class="login-btn">Sign In</button>
+        </form>
+        <a href="index.html" class="back-link">← Back to Home</a>
+      </div>
+    </div>
+  </body>
+</html>
+
+

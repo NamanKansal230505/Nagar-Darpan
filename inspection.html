@@ -1,0 +1,2120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Drone Inspection - Nagardarpan</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <!-- Roboflow Serverless API for garbage detection -->
+  
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    :root {
+      --bg: #0b1220;
+      --card: rgba(9, 14, 26, 0.8);
+      --card-border: rgba(255,255,255,0.1);
+      --text: #ffffff;
+      --muted: rgba(255,255,255,0.6);
+      --accent: #18e0b5;
+      --good: #43ff88;
+      --moderate: #ffc857;
+      --poor: #ff6b6b;
+    }
+    body {
+      font-family: 'Outfit', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+    .inspection-header {
+      background: var(--card);
+      border-bottom: 1px solid var(--card-border);
+      padding: 20px 24px;
+      backdrop-filter: blur(16px);
+      position: sticky;
+      top: 0;
+      z-index: 1000;
+    }
+    .inspection-header-content {
+      max-width: 1600px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .back-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 20px;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid var(--card-border);
+      border-radius: 10px;
+      color: var(--text);
+      text-decoration: none;
+      font-weight: 600;
+      font-size: 14px;
+      transition: all 0.2s ease;
+      cursor: pointer;
+    }
+    .back-btn:hover {
+      background: rgba(255,255,255,0.1);
+      border-color: var(--accent);
+    }
+    .inspection-title {
+      font-size: 24px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+    .connection-loader {
+      position: fixed;
+      inset: 0;
+      background: linear-gradient(145deg, rgba(11, 18, 32, 0.94), rgba(8, 12, 24, 0.96));
+      display: none;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      z-index: 1500;
+      gap: 28px;
+      overflow: hidden;
+    }
+    .connection-loader.active {
+      display: flex;
+      animation: fadeInOverlay 0.4s ease forwards;
+    }
+    .loader-card {
+      padding: 40px 48px;
+      border-radius: 22px;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      box-shadow: 0 18px 60px rgba(0, 0, 0, 0.45);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 20px;
+      min-width: 320px;
+      text-align: center;
+      backdrop-filter: blur(22px);
+      animation: riseUp 0.6s ease forwards;
+    }
+    .loader-spinner {
+      width: 72px;
+      height: 72px;
+      border-radius: 50%;
+      border: 6px solid rgba(24, 224, 181, 0.18);
+      border-top-color: var(--accent);
+      border-right-color: rgba(24, 224, 181, 0.45);
+      animation: spin 1.1s linear infinite, glow 2.4s ease-in-out infinite;
+      position: relative;
+    }
+    .loader-spinner::after {
+      content: '';
+      position: absolute;
+      inset: 12px;
+      border-radius: 50%;
+      border: 3px solid rgba(24, 224, 181, 0.35);
+      animation: pulseInside 2s ease-in-out infinite;
+    }
+    .loader-status {
+      font-size: 18px;
+      font-weight: 600;
+      letter-spacing: 0.02em;
+    }
+    .loader-subtext {
+      font-size: 13px;
+      color: var(--muted);
+      max-width: 260px;
+      line-height: 1.5;
+    }
+    .loader-retry-btn {
+      margin-top: 8px;
+      padding: 10px 22px;
+      border-radius: 10px;
+      background: rgba(255, 255, 255, 0.08);
+      color: var(--text);
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      font-family: 'Outfit', sans-serif;
+      font-weight: 600;
+      font-size: 13px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: none;
+    }
+    .loader-retry-btn:hover {
+      background: rgba(255, 255, 255, 0.16);
+      transform: translateY(-1px);
+      border-color: rgba(24, 224, 181, 0.55);
+    }
+    .loader-retry-btn:active {
+      transform: translateY(0);
+    }
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+    @keyframes glow {
+      0%, 100% {
+        box-shadow: 0 0 0 rgba(24, 224, 181, 0);
+      }
+      50% {
+        box-shadow: 0 0 30px rgba(24, 224, 181, 0.35);
+      }
+    }
+    @keyframes pulseInside {
+      0%, 100% {
+        transform: scale(0.95);
+        opacity: 0.5;
+      }
+      50% {
+        transform: scale(1.05);
+        opacity: 0.9;
+      }
+    }
+    @keyframes fadeInOverlay {
+      from {
+        opacity: 0;
+      }
+      to {
+        opacity: 1;
+      }
+    }
+    @keyframes riseUp {
+      from {
+        transform: translateY(20px);
+        opacity: 0;
+      }
+      to {
+        transform: translateY(0);
+        opacity: 1;
+      }
+    }
+    .inspection-main {
+      max-width: 1600px;
+      margin: 0 auto;
+      padding: 32px 24px;
+      opacity: 0;
+      visibility: hidden;
+      transition: opacity 0.5s ease, visibility 0.5s ease;
+    }
+    .inspection-main.stream-connected {
+      opacity: 1;
+      visibility: visible;
+    }
+    .inspection-info-card {
+      background: var(--card);
+      border: 1px solid var(--card-border);
+      border-radius: 20px;
+      padding: 24px;
+      backdrop-filter: blur(16px);
+      margin-bottom: 24px;
+    }
+    .info-card-title {
+      font-size: 18px;
+      font-weight: 700;
+      margin-bottom: 16px;
+      letter-spacing: -0.01em;
+    }
+    .info-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 16px;
+    }
+    .info-item {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .info-label {
+      font-size: 12px;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      font-weight: 600;
+    }
+    .info-value {
+      font-size: 20px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+    .inspection-status-card {
+      background: var(--card);
+      border: 1px solid var(--card-border);
+      border-radius: 20px;
+      padding: 32px;
+      backdrop-filter: blur(16px);
+      text-align: center;
+      margin-bottom: 24px;
+    }
+    .status-icon {
+      font-size: 64px;
+      margin-bottom: 16px;
+      animation: pulse 2s ease-in-out infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); opacity: 1; }
+      50% { transform: scale(1.1); opacity: 0.8; }
+    }
+    .status-title {
+      font-size: 28px;
+      font-weight: 700;
+      margin-bottom: 8px;
+      letter-spacing: -0.02em;
+    }
+    .status-description {
+      font-size: 16px;
+      color: var(--muted);
+      margin-bottom: 24px;
+    }
+    .progress-bar {
+      width: 100%;
+      height: 8px;
+      background: rgba(255,255,255,0.1);
+      border-radius: 10px;
+      overflow: hidden;
+      margin-bottom: 12px;
+    }
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--accent), var(--good));
+      border-radius: 10px;
+      transition: width 0.3s ease;
+      animation: progress 3s ease-in-out infinite;
+    }
+    @keyframes progress {
+      0% { width: 0%; }
+      50% { width: 65%; }
+      100% { width: 100%; }
+    }
+    .progress-text {
+      font-size: 14px;
+      color: var(--muted);
+      font-weight: 600;
+    }
+    .inspection-details-card {
+      background: var(--card);
+      border: 1px solid var(--card-border);
+      border-radius: 20px;
+      padding: 24px;
+      backdrop-filter: blur(16px);
+    }
+    .details-title {
+      font-size: 20px;
+      font-weight: 700;
+      margin-bottom: 20px;
+      letter-spacing: -0.02em;
+    }
+    .details-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 16px;
+    }
+    .detail-card {
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 12px;
+      padding: 16px;
+    }
+    .detail-label {
+      font-size: 12px;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 8px;
+      font-weight: 600;
+    }
+    .detail-value {
+      font-size: 18px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+    .detail-value.good { color: var(--good); }
+    .detail-value.moderate { color: var(--moderate); }
+    .detail-value.poor { color: var(--poor); }
+    .video-feed-card {
+      background: var(--card);
+      border: 1px solid var(--card-border);
+      border-radius: 20px;
+      padding: 24px;
+      backdrop-filter: blur(16px);
+      margin-bottom: 24px;
+    }
+    .video-feed-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 16px;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+    .video-feed-title {
+      font-size: 20px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+    .video-controls {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+    }
+    .camera-url-input {
+      background: rgba(255,255,255,0.05);
+      border: 1px solid var(--card-border);
+      border-radius: 8px;
+      padding: 8px 12px;
+      color: var(--text);
+      font-family: 'Outfit', sans-serif;
+      font-size: 14px;
+      min-width: 300px;
+      transition: all 0.2s ease;
+    }
+    .camera-url-input:focus {
+      outline: none;
+      border-color: var(--accent);
+      background: rgba(255,255,255,0.08);
+    }
+    .camera-url-input::placeholder {
+      color: var(--muted);
+    }
+    .connect-btn {
+      background: var(--accent);
+      border: none;
+      border-radius: 8px;
+      padding: 8px 16px;
+      color: var(--bg);
+      font-family: 'Outfit', sans-serif;
+      font-weight: 600;
+      font-size: 14px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    .connect-btn:hover {
+      background: #1af5c9;
+      transform: translateY(-1px);
+    }
+    .connect-btn:active {
+      transform: translateY(0);
+    }
+    .video-container {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 16 / 9;
+      background: rgba(0,0,0,0.5);
+      border-radius: 12px;
+      overflow: hidden;
+      border: 1px solid var(--card-border);
+    }
+    .video-feed {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+      position: relative;
+      z-index: 0;
+    }
+    .detection-canvas {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 1;
+      background: transparent;
+    }
+    .detection-controls {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      margin-top: 12px;
+      flex-wrap: wrap;
+    }
+    .detection-toggle {
+      background: var(--accent);
+      border: none;
+      border-radius: 8px;
+      padding: 8px 16px;
+      color: var(--bg);
+      font-family: 'Outfit', sans-serif;
+      font-weight: 600;
+      font-size: 14px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    .detection-toggle:hover {
+      background: #1af5c9;
+    }
+    .detection-toggle.active {
+      background: var(--good);
+    }
+    .detection-info {
+      font-size: 12px;
+      color: var(--muted);
+      font-weight: 600;
+    }
+    .detected-objects {
+      margin-top: 12px;
+      padding: 12px;
+      background: rgba(255,255,255,0.05);
+      border-radius: 8px;
+      border: 1px solid var(--card-border);
+      max-height: 150px;
+      overflow-y: auto;
+    }
+    .detected-objects-title {
+      font-size: 12px;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 8px;
+      font-weight: 600;
+    }
+    .detected-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 6px 0;
+      border-bottom: 1px solid rgba(255,255,255,0.05);
+      font-size: 13px;
+    }
+    .detected-item:last-child {
+      border-bottom: none;
+    }
+    .detected-label {
+      font-weight: 600;
+      color: var(--text);
+    }
+    .detected-confidence {
+      color: var(--accent);
+      font-weight: 600;
+    }
+    .cleanliness-card {
+      background: var(--card);
+      border: 1px solid var(--card-border);
+      border-radius: 20px;
+      padding: 24px;
+      backdrop-filter: blur(16px);
+      margin-bottom: 24px;
+    }
+    .cleanliness-score {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    .score-value-large {
+      font-size: 64px;
+      font-weight: 800;
+      line-height: 1;
+      margin-bottom: 8px;
+      letter-spacing: -0.03em;
+    }
+    .score-label-large {
+      font-size: 14px;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      font-weight: 600;
+    }
+    .cleanliness-metrics {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 16px;
+      margin-top: 20px;
+    }
+    .cleanliness-metric {
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 12px;
+      padding: 16px;
+      text-align: center;
+    }
+    .metric-value {
+      font-size: 24px;
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+    .metric-label {
+      font-size: 12px;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .garbage-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 8px 12px;
+      margin: 4px 0;
+      background: rgba(255, 107, 107, 0.1);
+      border-left: 3px solid var(--poor);
+      border-radius: 6px;
+    }
+    .garbage-item.high-confidence {
+      background: rgba(255, 107, 107, 0.2);
+      border-left-width: 4px;
+    }
+    .video-placeholder {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      color: var(--muted);
+      font-size: 16px;
+      text-align: center;
+      padding: 24px;
+    }
+    .video-placeholder-icon {
+      font-size: 48px;
+      margin-bottom: 12px;
+      opacity: 0.5;
+    }
+    .video-error {
+      color: var(--poor);
+      font-size: 14px;
+      margin-top: 8px;
+      display: none;
+    }
+    .video-error.show {
+      display: block;
+    }
+    .end-inspection-btn {
+      background: linear-gradient(135deg, #ff6b6b, #ff5252);
+      border: none;
+      border-radius: 10px;
+      padding: 12px 24px;
+      color: white;
+      font-family: 'Outfit', sans-serif;
+      font-weight: 700;
+      font-size: 14px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      box-shadow: 0 4px 12px rgba(255, 107, 107, 0.3);
+      letter-spacing: 0.02em;
+    }
+    .end-inspection-btn:hover {
+      background: linear-gradient(135deg, #ff5252, #ff4444);
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(255, 107, 107, 0.4);
+    }
+    .end-inspection-btn:active {
+      transform: translateY(0);
+    }
+    /* Inspection Summary Dialog */
+    .inspection-summary-dialog {
+      position: fixed;
+      inset: 0;
+      z-index: 20000;
+      display: grid;
+      place-items: center;
+      opacity: 0;
+      visibility: hidden;
+      transition: opacity 0.4s cubic-bezier(0.4, 0, 0.2, 1), visibility 0.4s;
+      padding: 20px;
+    }
+    .inspection-summary-dialog.active {
+      opacity: 1;
+      visibility: visible;
+    }
+    .summary-overlay {
+      position: absolute;
+      inset: 0;
+      background: rgba(11, 18, 32, 0.85);
+      backdrop-filter: blur(12px);
+      opacity: 0;
+      transition: opacity 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .inspection-summary-dialog.active .summary-overlay {
+      opacity: 1;
+    }
+    .summary-content {
+      position: relative;
+      width: 100%;
+      max-width: 600px;
+      background: rgba(255, 255, 255, 0.03);
+      backdrop-filter: blur(20px) saturate(180%);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 24px;
+      padding: 40px 32px;
+      transform: translateY(30px) scale(0.95);
+      opacity: 0;
+      transition: transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.05) inset;
+      max-height: 90vh;
+      overflow-y: auto;
+    }
+    .inspection-summary-dialog.active .summary-content {
+      transform: translateY(0) scale(1);
+      opacity: 1;
+    }
+    .summary-header {
+      text-align: center;
+      margin-bottom: 32px;
+    }
+    .summary-title {
+      font-size: 28px;
+      font-weight: 800;
+      margin-bottom: 8px;
+      letter-spacing: -0.02em;
+    }
+    .summary-subtitle {
+      font-size: 14px;
+      color: var(--muted);
+    }
+    .summary-score {
+      text-align: center;
+      margin-bottom: 32px;
+      padding: 32px;
+      background: rgba(255, 255, 255, 0.04);
+      border-radius: 20px;
+      border: 2px solid rgba(255, 255, 255, 0.1);
+    }
+    .score-value {
+      font-size: 72px;
+      font-weight: 900;
+      line-height: 1;
+      margin-bottom: 8px;
+      letter-spacing: -0.04em;
+    }
+    .score-value.excellent { color: var(--good); }
+    .score-value.good { color: var(--good); }
+    .score-value.moderate { color: var(--moderate); }
+    .score-value.poor { color: var(--poor); }
+    .score-label {
+      font-size: 16px;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      font-weight: 600;
+    }
+    .summary-stats {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 16px;
+      margin-bottom: 32px;
+    }
+    .summary-stat {
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 12px;
+      padding: 16px;
+      text-align: center;
+    }
+    .stat-value {
+      font-size: 24px;
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+    .stat-label {
+      font-size: 12px;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .summary-garbage-list {
+      margin-bottom: 32px;
+    }
+    .garbage-list-title {
+      font-size: 14px;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 12px;
+      font-weight: 600;
+    }
+    .garbage-list-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 16px;
+      margin-bottom: 8px;
+      background: rgba(255, 107, 107, 0.1);
+      border-left: 3px solid var(--poor);
+      border-radius: 8px;
+    }
+    .summary-buttons {
+      display: flex;
+      gap: 12px;
+      justify-content: center;
+    }
+    .summary-btn {
+      padding: 14px 28px;
+      border-radius: 12px;
+      font-size: 14px;
+      font-weight: 600;
+      font-family: 'Outfit', sans-serif;
+      cursor: pointer;
+      transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+      border: none;
+      letter-spacing: 0.01em;
+    }
+    .summary-btn-primary {
+      background: linear-gradient(135deg, var(--accent), var(--good));
+      color: var(--bg);
+      box-shadow: 0 4px 12px rgba(24, 224, 181, 0.3);
+    }
+    .summary-btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(24, 224, 181, 0.4);
+    }
+    .summary-btn-secondary {
+      background: rgba(255, 255, 255, 0.05);
+      color: var(--text);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    .summary-btn-secondary:hover {
+      background: rgba(255, 255, 255, 0.08);
+      border-color: rgba(255, 255, 255, 0.15);
+      transform: translateY(-2px);
+    }
+    /* Leaderboard Styles */
+    .summary-leaderboard {
+      margin-bottom: 32px;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 16px;
+      padding: 24px;
+    }
+    .leaderboard-header {
+      margin-bottom: 20px;
+    }
+    .leaderboard-title {
+      font-size: 18px;
+      font-weight: 700;
+      margin-bottom: 16px;
+      text-align: center;
+      letter-spacing: -0.01em;
+    }
+    .leaderboard-tabs {
+      display: flex;
+      gap: 8px;
+      justify-content: center;
+    }
+    .leaderboard-tab {
+      padding: 8px 20px;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 8px;
+      color: var(--muted);
+      font-family: 'Outfit', sans-serif;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.25s ease;
+    }
+    .leaderboard-tab:hover {
+      background: rgba(255, 255, 255, 0.08);
+      border-color: rgba(255, 255, 255, 0.15);
+    }
+    .leaderboard-tab.active {
+      background: linear-gradient(135deg, var(--accent), var(--good));
+      color: var(--bg);
+      border-color: transparent;
+      box-shadow: 0 2px 8px rgba(24, 224, 181, 0.3);
+    }
+    .leaderboard-content {
+      min-height: 200px;
+    }
+    .leaderboard-stair {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .leaderboard-item {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      padding: 16px;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 12px;
+      transition: all 0.25s ease;
+      position: relative;
+    }
+    .leaderboard-item:hover {
+      background: rgba(255, 255, 255, 0.06);
+      border-color: rgba(255, 255, 255, 0.15);
+      transform: translateX(4px);
+    }
+    .leaderboard-item.current {
+      background: linear-gradient(135deg, rgba(24, 224, 181, 0.15), rgba(67, 255, 136, 0.1));
+      border-color: var(--accent);
+      box-shadow: 0 4px 12px rgba(24, 224, 181, 0.2);
+    }
+    .leaderboard-rank {
+      font-size: 24px;
+      font-weight: 800;
+      min-width: 50px;
+      text-align: center;
+      letter-spacing: -0.02em;
+    }
+    .leaderboard-trophy {
+      font-size: 32px;
+      min-width: 40px;
+      text-align: center;
+    }
+    .leaderboard-rank-1 .leaderboard-trophy { filter: drop-shadow(0 0 8px rgba(255, 215, 0, 0.6)); }
+    .leaderboard-rank-2 .leaderboard-trophy { filter: drop-shadow(0 0 8px rgba(192, 192, 192, 0.6)); }
+    .leaderboard-rank-3 .leaderboard-trophy { filter: drop-shadow(0 0 8px rgba(205, 127, 50, 0.6)); }
+    .leaderboard-info {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .leaderboard-name {
+      font-size: 16px;
+      font-weight: 700;
+      letter-spacing: -0.01em;
+    }
+    .leaderboard-details {
+      font-size: 12px;
+      color: var(--muted);
+      display: flex;
+      gap: 12px;
+    }
+    .leaderboard-score {
+      font-size: 28px;
+      font-weight: 800;
+      min-width: 80px;
+      text-align: right;
+      letter-spacing: -0.02em;
+    }
+    .leaderboard-score.excellent { color: var(--good); }
+    .leaderboard-score.good { color: var(--good); }
+    .leaderboard-score.moderate { color: var(--moderate); }
+    .leaderboard-score.poor { color: var(--poor); }
+    .leaderboard-empty {
+      text-align: center;
+      padding: 40px 20px;
+      color: var(--muted);
+      font-size: 14px;
+    }
+    .leaderboard-empty-icon {
+      font-size: 48px;
+      margin-bottom: 12px;
+      opacity: 0.5;
+    }
+    .video-status {
+      position: absolute;
+      top: 12px;
+      right: 12px;
+      background: rgba(0,0,0,0.7);
+      padding: 6px 12px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 600;
+      display: none;
+      backdrop-filter: blur(8px);
+    }
+    .video-status.live {
+      display: block;
+      color: var(--good);
+    }
+    .video-status.connecting {
+      display: block;
+      color: var(--moderate);
+    }
+    .video-status.error {
+      display: block;
+      color: var(--poor);
+    }
+    @media (max-width: 768px) {
+      .camera-url-input {
+        min-width: 100%;
+      }
+      .video-controls {
+        width: 100%;
+        flex-direction: column;
+      }
+      .connect-btn {
+        width: 100%;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header class="inspection-header">
+    <div class="inspection-header-content">
+      <a href="municipal-dashboard.html" class="back-btn">
+        ← Back to Dashboard
+      </a>
+      <h1 class="inspection-title">Drone Inspection</h1>
+      <button id="end-inspection-btn" class="end-inspection-btn" style="display: none;">End Inspection</button>
+    </div>
+  </header>
+
+  <div id="connection-loader" class="connection-loader active">
+    <div class="loader-card">
+      <div class="loader-spinner"></div>
+      <div>
+        <p class="loader-status" id="loader-message">Connecting to drone feed…</p>
+        <p class="loader-subtext" id="loader-subtext">Establishing secure link with live inspection stream.</p>
+      </div>
+      <button class="loader-retry-btn" id="loader-retry-btn">Retry Connection</button>
+    </div>
+  </div>
+
+
+  <main class="inspection-main" id="inspection-main">
+    <!-- Inspection Info Card -->
+    <div class="inspection-info-card">
+      <h2 class="info-card-title">Inspection Details</h2>
+      <div class="info-grid" id="inspection-info">
+        <!-- Will be populated by JavaScript -->
+      </div>
+    </div>
+
+    <!-- Live Video Feed Card -->
+    <div class="video-feed-card">
+      <div class="video-feed-header">
+        <h2 class="video-feed-title">Live Video Feed</h2>
+        <div class="video-controls">
+          <input 
+            type="text" 
+            id="camera-url-input" 
+            class="camera-url-input" 
+            placeholder="Enter IP camera URL (e.g., http://10.111.95.246/stream)"
+            autocomplete="off"
+            value="http://10.111.95.246/stream"
+          />
+          <button class="connect-btn" id="connect-btn">Connect</button>
+        </div>
+      </div>
+      <div class="video-container">
+        <img id="video-feed" class="video-feed" src="http://10.111.95.246/stream" alt="Live video feed" loading="eager" crossorigin="anonymous" />
+        <canvas id="detection-canvas" class="detection-canvas"></canvas>
+        <div class="video-placeholder" id="video-placeholder" style="display: none;">
+          <div class="video-placeholder-icon">📹</div>
+          <div>Loading video feed...</div>
+        </div>
+        <div class="video-status live" id="video-status">LIVE</div>
+      </div>
+      <div class="video-error" id="video-error"></div>
+      <div class="detection-controls">
+        <button id="detection-toggle" class="detection-toggle">Enable Object Detection</button>
+        <span class="detection-info" id="detection-info">Loading model...</span>
+      </div>
+      <div class="detected-objects" id="detected-objects" style="display: none;">
+        <div class="detected-objects-title">Detected Objects</div>
+        <div id="detected-list"></div>
+      </div>
+    </div>
+
+    <!-- Inspection Status Card -->
+    <div class="inspection-status-card">
+      <div class="status-icon">🚁</div>
+      <h2 class="status-title" id="status-title">Inspection In Progress</h2>
+      <p class="status-description" id="status-description">Drone is currently conducting aerial inspection...</p>
+      <div class="progress-bar">
+        <div class="progress-fill" id="progress-fill"></div>
+      </div>
+      <div class="progress-text" id="progress-text">Initializing...</div>
+    </div>
+
+    <!-- Inspection Details Card -->
+    <div class="inspection-details-card">
+      <h2 class="details-title">Inspection Parameters</h2>
+      <div class="details-grid" id="inspection-details">
+        <!-- Will be populated by JavaScript -->
+      </div>
+    </div>
+  </main>
+
+  <!-- Inspection Summary Dialog -->
+  <div id="inspection-summary-dialog" class="inspection-summary-dialog">
+    <div class="summary-overlay"></div>
+    <div class="summary-content">
+      <div class="summary-header">
+        <h2 class="summary-title">Inspection Complete</h2>
+        <p class="summary-subtitle">Cleanliness Score Based on Garbage Detection</p>
+      </div>
+      <div class="summary-score">
+        <div id="summary-score-value" class="score-value">--</div>
+        <div class="score-label" id="summary-score-label">Score</div>
+      </div>
+      <div class="summary-stats" id="summary-stats">
+        <!-- Will be populated by JavaScript -->
+      </div>
+      <div class="summary-garbage-list" id="summary-garbage-list" style="display: none;">
+        <div class="garbage-list-title">Detected Garbage Items</div>
+        <div id="garbage-list-items"></div>
+      </div>
+      <div class="summary-leaderboard" id="summary-leaderboard">
+        <div class="leaderboard-header">
+          <div class="leaderboard-title">🏆 Cleanliness Leaderboard</div>
+          <div class="leaderboard-tabs">
+            <button class="leaderboard-tab active" data-tab="wards">Wards</button>
+            <button class="leaderboard-tab" data-tab="commercial">Commercial Lands</button>
+          </div>
+        </div>
+        <div class="leaderboard-content" id="leaderboard-content">
+          <!-- Will be populated by JavaScript -->
+        </div>
+      </div>
+      <div class="summary-buttons">
+        <button class="summary-btn summary-btn-primary" id="summary-close-btn">Close</button>
+        <button class="summary-btn summary-btn-secondary" id="summary-download-btn">Download Report</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Get URL parameters
+    const urlParams = new URLSearchParams(window.location.search);
+    const type = urlParams.get('type') || 'ward';
+    const id = urlParams.get('id') || '1';
+    const name = decodeURIComponent(urlParams.get('name') || 'Unknown Location');
+
+    // Populate inspection info
+    const inspectionInfo = document.getElementById('inspection-info');
+    inspectionInfo.innerHTML = `
+      <div class="info-item">
+        <div class="info-label">Type</div>
+        <div class="info-value" style="text-transform: capitalize;">${type}</div>
+      </div>
+      <div class="info-item">
+        <div class="info-label">ID</div>
+        <div class="info-value">${id}</div>
+      </div>
+      <div class="info-item">
+        <div class="info-label">Location</div>
+        <div class="info-value" style="font-size: 18px;">${name}</div>
+      </div>
+      <div class="info-item">
+        <div class="info-label">Status</div>
+        <div class="info-value" style="color: var(--accent);">In Progress</div>
+      </div>
+    `;
+
+    // Simulate inspection progress
+    let progress = 0;
+    const progressFill = document.getElementById('progress-fill');
+    const progressText = document.getElementById('progress-text');
+    const statusTitle = document.getElementById('status-title');
+    const statusDescription = document.getElementById('status-description');
+
+    const inspectionSteps = [
+      { progress: 10, text: 'Initializing drone...', desc: 'Preparing drone for flight' },
+      { progress: 25, text: 'Takeoff...', desc: 'Drone taking off' },
+      { progress: 40, text: 'Navigating to location...', desc: 'Drone en route to target area' },
+      { progress: 70, text: 'Capturing imagery...', desc: 'Taking aerial photographs' },
+      { progress: 85, text: 'Analyzing data...', desc: 'Processing collected data' },
+      { progress: 100, text: 'Inspection Complete!', desc: 'Returning to base' }
+    ];
+
+    let currentStep = 0;
+    const progressInterval = setInterval(() => {
+      if (currentStep < inspectionSteps.length) {
+        const step = inspectionSteps[currentStep];
+        progress = step.progress;
+        progressFill.style.width = progress + '%';
+        progressText.textContent = step.text;
+        statusDescription.textContent = step.desc;
+        
+        if (progress === 100) {
+          statusTitle.textContent = 'Inspection Complete';
+          statusTitle.style.color = 'var(--good)';
+          clearInterval(progressInterval);
+        }
+        
+        currentStep++;
+      }
+    }, 2000);
+
+    // Populate inspection details
+    const inspectionDetails = document.getElementById('inspection-details');
+    const details = [
+      { label: 'Visual Inspection', value: 'Good', class: 'good' },
+      { label: 'Coverage Area', value: '100%', class: 'good' },
+      { label: 'Image Quality', value: 'HD', class: 'good' },
+      { label: 'Weather Conditions', value: 'Clear', class: 'good' },
+      { label: 'Battery Level', value: '85%', class: 'good' },
+      { label: 'Flight Time', value: '18:45', class: 'good', unit: 'minutes' },
+      { label: 'Data Points', value: '1,247', class: 'good' }
+    ];
+
+    inspectionDetails.innerHTML = details.map(detail => `
+      <div class="detail-card">
+        <div class="detail-label">${detail.label}</div>
+        <div class="detail-value ${detail.class}">
+          ${detail.value}${detail.unit ? ' ' + detail.unit : ''}
+        </div>
+      </div>
+    `).join('');
+
+    // Embed video feed directly
+    const videoFeed = document.getElementById('video-feed');
+    const videoStatus = document.getElementById('video-status');
+    const detectionCanvas = document.getElementById('detection-canvas');
+    const detectionCtx = detectionCanvas.getContext('2d');
+    const detectionToggle = document.getElementById('detection-toggle');
+    const detectionInfo = document.getElementById('detection-info');
+    const detectedObjects = document.getElementById('detected-objects');
+    const detectedList = document.getElementById('detected-list');
+    const connectionLoader = document.getElementById('connection-loader');
+    const loaderMessage = document.getElementById('loader-message');
+    const loaderSubtext = document.getElementById('loader-subtext');
+    const loaderRetryBtn = document.getElementById('loader-retry-btn');
+    
+    // Create a hidden canvas for detection processing
+    const processingCanvas = document.createElement('canvas');
+    const processingCtx = processingCanvas.getContext('2d');
+    
+    // Roboflow Serverless API configuration
+    const ROBOFLOW_API_URL = 'https://serverless.roboflow.com/garbage-detection-srglr/1';
+    const ROBOFLOW_API_KEY = 'OLAtwUUvxJqCgDFTMN04';
+    
+    let modelLoaded = true; // API is ready
+    let isDetectionEnabled = false;
+    let detectionInterval = null;
+    let videoUpdateInterval = null;
+    let isDetecting = false;
+    let currentStreamUrl = 'http://10.111.95.246/stream';
+    let hasConnectedStream = false;
+    let retryTimeoutId = null;
+    function showLoader(message, subtext = 'Trying again automatically if connection fails.', showRetry = false) {
+      if (connectionLoader) {
+        loaderMessage.textContent = message;
+        loaderSubtext.textContent = subtext;
+        loaderRetryBtn.style.display = showRetry ? 'inline-flex' : 'none';
+        connectionLoader.classList.add('active');
+      }
+    }
+    
+    function hideLoader() {
+      if (connectionLoader) {
+        connectionLoader.classList.remove('active');
+        loaderRetryBtn.style.display = 'none';
+      }
+    }
+    
+    function scheduleStreamRetry(delay = 4000) {
+      if (retryTimeoutId) {
+        clearTimeout(retryTimeoutId);
+      }
+      retryTimeoutId = setTimeout(() => {
+        reconnectStream(true);
+      }, delay);
+    }
+    
+    function reconnectStream(isAuto = false) {
+      if (!currentStreamUrl) return;
+      hasConnectedStream = false;
+      const retrySuffix = currentStreamUrl.includes('?') ? '&' : '?';
+      videoFeed.src = `${currentStreamUrl}${retrySuffix}t=${Date.now()}`;
+      showLoader(
+        isAuto ? 'Attempting to re-establish drone connection…' : 'Reconnecting to drone feed…',
+        isAuto ? 'We will keep retrying automatically.' : 'Hold tight while we restore the live stream.',
+        false
+      );
+      videoStatus.textContent = 'CONNECTING';
+      videoStatus.className = 'video-status connecting';
+    }
+    
+    
+    // Inspection tracking
+    let inspectionStartTime = Date.now();
+    let garbageDetections = []; // Array of {timestamp, class, confidence, bbox, estimatedDistance}
+    let totalDetections = 0;
+    let inspectionEnded = false;
+    let currentLeaderboardTab = 'wards';
+    
+    // Load leaderboard data from localStorage
+    function loadLeaderboard() {
+      const stored = localStorage.getItem('inspectionLeaderboard');
+      if (stored) {
+        try {
+          return JSON.parse(stored);
+        } catch (e) {
+          console.error('Error loading leaderboard:', e);
+        }
+      }
+      // Return default structure
+      return {
+        wards: [],
+        commercial: []
+      };
+    }
+    
+    // Save leaderboard data to localStorage
+    function saveLeaderboard(data) {
+      try {
+        localStorage.setItem('inspectionLeaderboard', JSON.stringify(data));
+      } catch (e) {
+        console.error('Error saving leaderboard:', e);
+      }
+    }
+    
+    // Add current inspection to leaderboard
+    function addToLeaderboard(score, rating) {
+      const leaderboard = loadLeaderboard();
+      const entry = {
+        id: id,
+        name: name,
+        type: type,
+        score: score,
+        rating: rating,
+        timestamp: Date.now(),
+        date: new Date().toISOString()
+      };
+      
+      if (type === 'ward') {
+        // Remove existing entry for this ward if any
+        leaderboard.wards = leaderboard.wards.filter(item => item.id !== id);
+        leaderboard.wards.push(entry);
+        // Sort by score (highest first)
+        leaderboard.wards.sort((a, b) => b.score - a.score);
+        // Keep top 10
+        leaderboard.wards = leaderboard.wards.slice(0, 10);
+      } else if (type === 'commercial' || type === 'commercial-land') {
+        // Remove existing entry for this commercial land if any
+        leaderboard.commercial = leaderboard.commercial.filter(item => item.id !== id);
+        leaderboard.commercial.push(entry);
+        // Sort by score (highest first)
+        leaderboard.commercial.sort((a, b) => b.score - a.score);
+        // Keep top 10
+        leaderboard.commercial = leaderboard.commercial.slice(0, 10);
+      }
+      
+      saveLeaderboard(leaderboard);
+      return leaderboard;
+    }
+    
+    // Get trophy emoji for rank
+    function getTrophyEmoji(rank) {
+      if (rank === 1) return '🥇';
+      if (rank === 2) return '🥈';
+      if (rank === 3) return '🥉';
+      return '';
+    }
+    
+    // Render leaderboard
+    function renderLeaderboard(tab) {
+      currentLeaderboardTab = tab;
+      const leaderboard = loadLeaderboard();
+      const data = tab === 'wards' ? leaderboard.wards : leaderboard.commercial;
+      const content = document.getElementById('leaderboard-content');
+      
+      // Update active tab
+      document.querySelectorAll('.leaderboard-tab').forEach(btn => {
+        btn.classList.remove('active');
+        if (btn.dataset.tab === tab) {
+          btn.classList.add('active');
+        }
+      });
+      
+      if (!data || data.length === 0) {
+        content.innerHTML = `
+          <div class="leaderboard-empty">
+            <div class="leaderboard-empty-icon">📊</div>
+            <div>No ${tab === 'wards' ? 'ward' : 'commercial land'} inspections yet</div>
+            <div style="font-size: 12px; margin-top: 8px; opacity: 0.7;">Complete inspections to see rankings</div>
+          </div>
+        `;
+        return;
+      }
+      
+      // Find current item's rank
+      const currentRank = data.findIndex(item => item.id === id && item.name === name) + 1;
+      const isCurrentInTop = currentRank > 0 && currentRank <= 10;
+      
+      // Show top 10
+      const topItems = data.slice(0, 10);
+      
+      content.innerHTML = `
+        <div class="leaderboard-stair">
+          ${topItems.map((item, index) => {
+            const rank = index + 1;
+            const trophy = getTrophyEmoji(rank);
+            const isCurrent = item.id === id && item.name === name;
+            const scoreClass = item.rating || (item.score >= 90 ? 'excellent' : item.score >= 70 ? 'good' : item.score >= 50 ? 'moderate' : 'poor');
+            
+            return `
+              <div class="leaderboard-item ${isCurrent ? 'current' : ''} leaderboard-rank-${rank}">
+                <div class="leaderboard-rank" style="color: ${rank <= 3 ? 'var(--accent)' : 'var(--muted)'};">${rank}</div>
+                <div class="leaderboard-trophy">${trophy}</div>
+                <div class="leaderboard-info">
+                  <div class="leaderboard-name">${item.name} ${isCurrent ? '<span style="color: var(--accent); font-size: 12px;">(Current)</span>' : ''}</div>
+                  <div class="leaderboard-details">
+                    <span>Score: ${item.score}</span>
+                    <span>•</span>
+                    <span>${item.rating || 'N/A'}</span>
+                  </div>
+                </div>
+                <div class="leaderboard-score ${scoreClass}">${item.score}</div>
+              </div>
+            `;
+          }).join('')}
+          ${isCurrentInTop ? '' : `
+            <div class="leaderboard-item current" style="margin-top: 16px; border-style: dashed;">
+              <div class="leaderboard-rank" style="color: var(--muted);">${currentRank}</div>
+              <div class="leaderboard-trophy" style="opacity: 0.5;">📍</div>
+              <div class="leaderboard-info">
+                <div class="leaderboard-name">${name} <span style="color: var(--accent); font-size: 12px;">(Current)</span></div>
+                <div class="leaderboard-details">
+                  <span>Score: ${calculateCleanlinessScore().score}</span>
+                  <span>•</span>
+                  <span>${calculateCleanlinessScore().label}</span>
+                </div>
+              </div>
+              <div class="leaderboard-score ${calculateCleanlinessScore().rating}">${calculateCleanlinessScore().score}</div>
+            </div>
+          `}
+        </div>
+      `;
+    }
+    
+    // Initialize leaderboard tabs
+    function initLeaderboardTabs() {
+      document.querySelectorAll('.leaderboard-tab').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const tab = btn.dataset.tab;
+          renderLeaderboard(tab);
+        });
+      });
+    }
+    
+    // Calculate estimated distance from bounding box size
+    // Larger boxes = closer objects, smaller boxes = farther objects
+    function estimateDistance(bbox, imageWidth, imageHeight) {
+      const [x, y, width, height] = bbox;
+      const boxArea = width * height;
+      const imageArea = imageWidth * imageHeight;
+      const relativeSize = boxArea / imageArea;
+      
+      // Estimate distance in meters (rough approximation)
+      // A box that's 10% of image size might be ~5m away
+      // A box that's 1% of image size might be ~20m away
+      // This is a simplified model - actual distance would need calibration
+      const estimatedMeters = Math.max(2, Math.min(50, 20 - (relativeSize * 150)));
+      return estimatedMeters;
+    }
+    
+    // Track garbage detection
+    function trackGarbageDetection(predictions) {
+      if (inspectionEnded || !predictions || predictions.length === 0) {
+        return;
+      }
+      
+      const timestamp = Date.now();
+      const imageWidth = videoFeed.naturalWidth || 640;
+      const imageHeight = videoFeed.naturalHeight || 480;
+      
+      predictions.forEach(prediction => {
+        const distance = estimateDistance(prediction.bbox, imageWidth, imageHeight);
+        garbageDetections.push({
+          timestamp: timestamp,
+          class: prediction.class || 'Garbage',
+          confidence: prediction.score || 0,
+          bbox: prediction.bbox,
+          estimatedDistance: distance
+        });
+        totalDetections++;
+      });
+    }
+    
+    // Calculate collective cleanliness score
+    function calculateCleanlinessScore() {
+      if (garbageDetections.length === 0) {
+        return {
+          score: 100,
+          rating: 'excellent',
+          label: 'Excellent',
+          stats: {
+            totalGarbage: 0,
+            averageDistance: 0,
+            averageConfidence: 0,
+            closestGarbage: 0,
+            inspectionDuration: Math.floor((Date.now() - inspectionStartTime) / 1000)
+          }
+        };
+      }
+      
+      // Calculate average distance (closer = worse)
+      const avgDistance = garbageDetections.reduce((sum, det) => sum + det.estimatedDistance, 0) / garbageDetections.length;
+      const minDistance = Math.min(...garbageDetections.map(det => det.estimatedDistance));
+      const avgConfidence = garbageDetections.reduce((sum, det) => sum + det.confidence, 0) / garbageDetections.length;
+      
+      // Group by class
+      const classGroups = {};
+      garbageDetections.forEach(det => {
+        if (!classGroups[det.class]) {
+          classGroups[det.class] = {
+            count: 0,
+            avgDistance: 0,
+            avgConfidence: 0,
+            distances: []
+          };
+        }
+        classGroups[det.class].count++;
+        classGroups[det.class].distances.push(det.estimatedDistance);
+        classGroups[det.class].avgConfidence += det.confidence;
+      });
+      
+      Object.keys(classGroups).forEach(className => {
+        const group = classGroups[className];
+        group.avgDistance = group.distances.reduce((a, b) => a + b, 0) / group.distances.length;
+        group.avgConfidence = group.avgConfidence / group.count;
+      });
+      
+      // Score calculation:
+      // Base score: 100
+      // Penalties:
+      // - 5 points per garbage item (max -50 points)
+      // - 10 points if closest garbage is < 5m (very close)
+      // - 5 points if closest garbage is < 10m (close)
+      // - 2 points per 10m average distance below 20m (closer = worse)
+      
+      let score = 100;
+      
+      // Penalty for number of items (max 50 items = -50 points)
+      const itemPenalty = Math.min(50, garbageDetections.length * 1.5);
+      score -= itemPenalty;
+      
+      // Penalty for proximity (closer garbage = worse)
+      if (minDistance < 5) {
+        score -= 15; // Very close garbage
+      } else if (minDistance < 10) {
+        score -= 8; // Close garbage
+      } else if (minDistance < 15) {
+        score -= 4; // Moderate distance
+      }
+      
+      // Penalty for average distance (closer average = worse)
+      if (avgDistance < 10) {
+        score -= 10; // Very close on average
+      } else if (avgDistance < 15) {
+        score -= 5; // Close on average
+      } else if (avgDistance < 20) {
+        score -= 2; // Moderate distance on average
+      }
+      
+      // Ensure score is between 0 and 100
+      score = Math.max(0, Math.min(100, score));
+      
+      // Determine rating
+      let rating = 'excellent';
+      let label = 'Excellent';
+      
+      if (score >= 90) {
+        rating = 'excellent';
+        label = 'Excellent';
+      } else if (score >= 70) {
+        rating = 'good';
+        label = 'Good';
+      } else if (score >= 50) {
+        rating = 'moderate';
+        label = 'Moderate';
+      } else {
+        rating = 'poor';
+        label = 'Poor';
+      }
+      
+      return {
+        score: Math.round(score),
+        rating: rating,
+        label: label,
+        stats: {
+          totalGarbage: garbageDetections.length,
+          averageDistance: Math.round(avgDistance * 10) / 10,
+          averageConfidence: Math.round(avgConfidence * 100),
+          closestGarbage: Math.round(minDistance * 10) / 10,
+          inspectionDuration: Math.floor((Date.now() - inspectionStartTime) / 1000),
+          classGroups: classGroups
+        }
+      };
+    }
+    
+    // Show inspection summary
+    function showInspectionSummary() {
+      inspectionEnded = true;
+      
+      // Stop detection
+      if (isDetectionEnabled) {
+        toggleDetection();
+      }
+      
+      // Calculate score
+      const result = calculateCleanlinessScore();
+      
+      // Add to leaderboard
+      addToLeaderboard(result.score, result.label);
+      
+      // Initialize leaderboard tabs
+      initLeaderboardTabs();
+      
+      // Render leaderboard for current type
+      const initialTab = (type === 'ward') ? 'wards' : 'commercial';
+      renderLeaderboard(initialTab);
+      
+      // Update dialog content
+      const scoreValue = document.getElementById('summary-score-value');
+      const scoreLabel = document.getElementById('summary-score-label');
+      const summaryStats = document.getElementById('summary-stats');
+      const garbageList = document.getElementById('summary-garbage-list');
+      const garbageListItems = document.getElementById('garbage-list-items');
+      
+      scoreValue.textContent = result.score;
+      scoreValue.className = `score-value ${result.rating}`;
+      scoreLabel.textContent = result.label;
+      
+      // Update stats
+      const durationMinutes = Math.floor(result.stats.inspectionDuration / 60);
+      const durationSeconds = result.stats.inspectionDuration % 60;
+      
+      summaryStats.innerHTML = `
+        <div class="summary-stat">
+          <div class="stat-value">${result.stats.totalGarbage}</div>
+          <div class="stat-label">Garbage Items</div>
+        </div>
+        <div class="summary-stat">
+          <div class="stat-value">${result.stats.closestGarbage}m</div>
+          <div class="stat-label">Closest Detection</div>
+        </div>
+        <div class="summary-stat">
+          <div class="stat-value">${result.stats.averageDistance}m</div>
+          <div class="stat-label">Avg Distance</div>
+        </div>
+        <div class="summary-stat">
+          <div class="stat-value">${durationMinutes}:${durationSeconds.toString().padStart(2, '0')}</div>
+          <div class="stat-label">Duration</div>
+        </div>
+      `;
+      
+      // Show garbage list if items detected
+      if (result.stats.totalGarbage > 0 && result.stats.classGroups) {
+        garbageList.style.display = 'block';
+        const classEntries = Object.entries(result.stats.classGroups)
+          .sort((a, b) => b[1].count - a[1].count);
+        
+        garbageListItems.innerHTML = classEntries.map(([className, data]) => `
+          <div class="garbage-list-item">
+            <div>
+              <strong>${className}</strong>
+              <div style="font-size: 12px; color: var(--muted); margin-top: 4px;">
+                ${data.count} item${data.count > 1 ? 's' : ''} • Avg distance: ${Math.round(data.avgDistance * 10) / 10}m
+              </div>
+            </div>
+            <div style="font-weight: 700; color: var(--poor);">${data.count}x</div>
+          </div>
+        `).join('');
+      } else {
+        garbageList.style.display = 'none';
+      }
+      
+      // Show dialog
+      const dialog = document.getElementById('inspection-summary-dialog');
+      dialog.classList.add('active');
+      document.body.style.overflow = 'hidden';
+    }
+    
+    // Close summary dialog
+    function closeInspectionSummary() {
+      const dialog = document.getElementById('inspection-summary-dialog');
+      dialog.classList.remove('active');
+      document.body.style.overflow = '';
+    }
+    
+    // Download report
+    function downloadReport() {
+      const result = calculateCleanlinessScore();
+      const report = {
+        location: name,
+        type: type,
+        id: id,
+        timestamp: new Date().toISOString(),
+        score: result.score,
+        rating: result.label,
+        stats: result.stats,
+        detections: garbageDetections
+      };
+      
+      const blob = new Blob([JSON.stringify(report, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `inspection-report-${name.replace(/\s+/g, '-')}-${Date.now()}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }
+    
+    // Event listeners for summary dialog
+    document.getElementById('end-inspection-btn').addEventListener('click', showInspectionSummary);
+    document.getElementById('summary-close-btn').addEventListener('click', closeInspectionSummary);
+    document.getElementById('summary-download-btn').addEventListener('click', downloadReport);
+    document.querySelector('.summary-overlay').addEventListener('click', closeInspectionSummary);
+    
+    // Show end inspection button when stream is connected
+    function showEndInspectionButton() {
+      const endBtn = document.getElementById('end-inspection-btn');
+      if (endBtn) {
+        endBtn.style.display = 'block';
+      }
+    }
+    
+    
+    // Resize canvas to match video
+    function resizeCanvas() {
+      if (!videoFeed.naturalWidth || !videoFeed.naturalHeight) {
+        setTimeout(resizeCanvas, 100);
+        return;
+      }
+      
+      const container = videoFeed.parentElement;
+      const containerWidth = container.clientWidth;
+      const containerHeight = container.clientHeight;
+      
+      // Set canvas to container size
+      detectionCanvas.width = containerWidth;
+      detectionCanvas.height = containerHeight;
+      detectionCanvas.style.width = containerWidth + 'px';
+      detectionCanvas.style.height = containerHeight + 'px';
+      
+      // Set processing canvas to actual image dimensions
+      processingCanvas.width = videoFeed.naturalWidth;
+      processingCanvas.height = videoFeed.naturalHeight;
+      
+      // Draw immediately after resize
+      updateVideoCanvas();
+    }
+    
+    // Continuously update canvas with video feed - optimized for low latency
+    function updateVideoCanvas() {
+      // Quick check - skip if image not ready
+      if (!videoFeed.complete || videoFeed.naturalWidth === 0 || videoFeed.naturalHeight === 0) {
+        return;
+      }
+      
+      // Resize if needed (only check once)
+      if (detectionCanvas.width === 0 || detectionCanvas.height === 0) {
+        resizeCanvas();
+        if (detectionCanvas.width === 0 || detectionCanvas.height === 0) {
+          return;
+        }
+      }
+      
+      // Direct draw - no try-catch for better performance
+      detectionCtx.drawImage(videoFeed, 0, 0, detectionCanvas.width, detectionCanvas.height);
+    }
+    
+    // Load Roboflow Serverless API
+    async function loadModel() {
+      try {
+        detectionInfo.textContent = 'Connecting to Roboflow API...';
+        detectionInfo.style.color = 'var(--moderate)';
+        
+        // API is ready (no need to load a model)
+        modelLoaded = true;
+        detectionInfo.textContent = 'Roboflow API ready ✓';
+        detectionInfo.style.color = 'var(--good)';
+        detectionToggle.disabled = false;
+        detectionToggle.textContent = 'Enable Garbage Detection';
+        console.log('Roboflow Serverless API ready');
+      } catch (error) {
+        console.error('Error setting up API:', error);
+        detectionInfo.textContent = 'Error setting up API - Check console';
+        detectionInfo.style.color = 'var(--poor)';
+      }
+    }
+    
+    // Run Roboflow Serverless API detection
+    async function runRoboflowDetection(imageBase64) {
+      try {
+        // Remove data URL prefix if present
+        const base64Data = imageBase64.includes(',') ? imageBase64.split(',')[1] : imageBase64;
+        
+        // Make request to Roboflow Serverless API
+        const url = new URL(ROBOFLOW_API_URL);
+        url.searchParams.append('api_key', ROBOFLOW_API_KEY);
+        
+        const response = await fetch(url.toString(), {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded'
+          },
+          body: base64Data
+        });
+        
+        if (!response.ok) {
+          const errorText = await response.text();
+          throw new Error(`Roboflow API error: ${response.status} - ${errorText}`);
+        }
+        
+        const data = await response.json();
+        return data.predictions || [];
+      } catch (error) {
+        console.error('Roboflow detection error:', error);
+        throw error;
+      }
+    }
+    
+    // Convert Roboflow predictions to our format
+    function formatPredictions(predictions) {
+      if (!predictions || !Array.isArray(predictions)) {
+        return [];
+      }
+      
+      return predictions.map(pred => {
+        // Roboflow API format: {x, y, width, height, class, confidence}
+        // Coordinates are typically center-based
+        let x, y, width, height;
+        
+        if (pred.x !== undefined && pred.y !== undefined && pred.width !== undefined && pred.height !== undefined) {
+          // Center coordinates format - convert to top-left
+          x = pred.x - pred.width / 2;
+          y = pred.y - pred.height / 2;
+          width = pred.width;
+          height = pred.height;
+        } else if (pred.bbox) {
+          // Bbox array format
+          if (Array.isArray(pred.bbox) && pred.bbox.length >= 4) {
+            x = pred.bbox[0];
+            y = pred.bbox[1];
+            width = pred.bbox[2];
+            height = pred.bbox[3];
+          }
+        } else {
+          return null;
+        }
+        
+        const className = pred.class || pred.class_name || 'Garbage';
+        const confidence = pred.confidence || pred.score || 0;
+        
+        return {
+          bbox: [x, y, width, height],
+          class: className,
+          score: confidence
+        };
+      }).filter(p => p !== null);
+    }
+    
+    // Draw bounding boxes and labels on top of video
+    function drawDetections(predictions) {
+      if (!isDetectionEnabled || !predictions || predictions.length === 0) {
+        return; // Don't clear, video is already drawn
+      }
+      
+      const scaleX = detectionCanvas.width / videoFeed.naturalWidth;
+      const scaleY = detectionCanvas.height / videoFeed.naturalHeight;
+      
+      predictions.forEach(prediction => {
+        const [x, y, width, height] = prediction.bbox;
+        
+        // Scale coordinates
+        const scaledX = x * scaleX;
+        const scaledY = y * scaleY;
+        const scaledWidth = width * scaleX;
+        const scaledHeight = height * scaleY;
+        
+        // Draw semi-transparent filled box background for garbage
+        detectionCtx.fillStyle = 'rgba(255, 107, 107, 0.3)';
+        detectionCtx.fillRect(scaledX, scaledY, scaledWidth, scaledHeight);
+        
+        // Draw bounding box (red for garbage)
+        detectionCtx.strokeStyle = '#ff6b6b';
+        detectionCtx.lineWidth = 4;
+        detectionCtx.strokeRect(scaledX, scaledY, scaledWidth, scaledHeight);
+        
+        // Draw label background
+        const label = `${prediction.class} ${Math.round(prediction.score * 100)}%`;
+        detectionCtx.font = 'bold 14px Outfit, sans-serif';
+        const textMetrics = detectionCtx.measureText(label);
+        const textWidth = textMetrics.width;
+        const textHeight = 22;
+        
+        detectionCtx.fillStyle = 'rgba(255, 107, 107, 0.9)';
+        detectionCtx.fillRect(scaledX, scaledY - textHeight, textWidth + 12, textHeight);
+        
+        // Draw label text
+        detectionCtx.fillStyle = '#0b1220';
+        detectionCtx.fillText(label, scaledX + 6, scaledY - 6);
+      });
+    }
+    
+    // Update detected objects list (garbage items)
+    function updateDetectedList(predictions) {
+      if (!predictions || predictions.length === 0) {
+        detectedList.innerHTML = '<div style="color: var(--muted); font-size: 12px;">No garbage detected ✓</div>';
+        return;
+      }
+      
+      // Group by class and count
+      const grouped = {};
+      predictions.forEach(pred => {
+        const className = pred.class || 'Garbage';
+        if (!grouped[className]) {
+          grouped[className] = {
+            count: 0,
+            maxConfidence: 0
+          };
+        }
+        grouped[className].count++;
+        grouped[className].maxConfidence = Math.max(grouped[className].maxConfidence, pred.score);
+      });
+      
+      detectedList.innerHTML = Object.entries(grouped)
+        .sort((a, b) => b[1].count - a[1].count)
+        .map(([className, data]) => `
+          <div class="garbage-item ${data.maxConfidence > 0.7 ? 'high-confidence' : ''}">
+            <span class="detected-label" style="color: var(--poor);">${className} (${data.count})</span>
+            <span class="detected-confidence" style="color: var(--poor);">${Math.round(data.maxConfidence * 100)}%</span>
+          </div>
+        `)
+        .join('');
+    }
+    
+    // Run garbage detection using Roboflow Serverless API
+    async function detectObjects() {
+      if (!modelLoaded || !isDetectionEnabled || isDetecting) {
+        return;
+      }
+      
+      // Check if image is loaded
+      if (!videoFeed.complete || videoFeed.naturalWidth === 0 || videoFeed.naturalHeight === 0) {
+        return;
+      }
+      
+      isDetecting = true;
+      
+      try {
+        // Draw image to processing canvas
+        processingCtx.drawImage(videoFeed, 0, 0, processingCanvas.width, processingCanvas.height);
+        
+        // Convert canvas to base64 image
+        // Use try-catch to handle CORS/tainted canvas errors
+        let imageBase64;
+        try {
+          imageBase64 = processingCanvas.toDataURL('image/jpeg', 0.8);
+        } catch (canvasError) {
+          // If canvas is tainted (CORS issue), try fetching the image directly
+          console.warn('Canvas tainted, trying alternative method:', canvasError);
+          try {
+            // Try fetching with CORS
+            const response = await fetch(videoFeed.src + '?t=' + Date.now(), { 
+              mode: 'cors',
+              cache: 'no-cache'
+            });
+            if (!response.ok) throw new Error('Fetch failed');
+            const blob = await response.blob();
+            const reader = new FileReader();
+            imageBase64 = await new Promise((resolve, reject) => {
+              reader.onloadend = () => resolve(reader.result);
+              reader.onerror = reject;
+              reader.readAsDataURL(blob);
+            });
+          } catch (fetchError) {
+            // If fetch also fails, skip this detection cycle
+            console.warn('Cannot extract image data due to CORS restrictions:', fetchError);
+            throw new Error('CORS: Video stream server needs to send CORS headers. Detection temporarily disabled.');
+          }
+        }
+        
+        // Run Roboflow Serverless API detection
+        const predictions = await runRoboflowDetection(imageBase64);
+        
+        // Filter predictions with confidence > 0.3
+        const filteredPredictions = (predictions || []).filter(p => {
+          const conf = p.confidence || p.score || 0;
+          return conf > 0.3;
+        });
+        
+        // Format predictions to our standard format
+        const formattedPredictions = formatPredictions(filteredPredictions);
+        
+        // Track garbage detection for scoring
+        trackGarbageDetection(formattedPredictions);
+        
+        // Draw detections on overlay canvas
+        drawDetections(formattedPredictions);
+        updateDetectedList(formattedPredictions);
+        
+        // Update detection info
+        if (formattedPredictions.length > 0) {
+          detectionInfo.textContent = `⚠️ ${formattedPredictions.length} garbage items detected`;
+          detectionInfo.style.color = 'var(--poor)';
+        } else {
+          detectionInfo.textContent = '✓ Clean - No garbage detected';
+          detectionInfo.style.color = 'var(--good)';
+        }
+      } catch (error) {
+        console.error('Detection error:', error);
+        detectionInfo.textContent = 'Detection error - ' + (error.message || 'Check console');
+        detectionInfo.style.color = 'var(--poor)';
+        
+        // Show helpful message
+        if (error.message && error.message.includes('401')) {
+          detectionInfo.innerHTML += '<br><small style="font-size: 10px;">Authentication error. Check API key.</small>';
+        } else if (error.message && error.message.includes('404')) {
+          detectionInfo.innerHTML += '<br><small style="font-size: 10px;">Model not found. Check API URL.</small>';
+        }
+      } finally {
+        isDetecting = false;
+      }
+    }
+    
+    // Start/stop detection
+    function toggleDetection() {
+      isDetectionEnabled = !isDetectionEnabled;
+      
+      if (isDetectionEnabled) {
+        if (!modelLoaded) {
+          alert('API not ready yet. Please wait...');
+          isDetectionEnabled = false;
+          return;
+        }
+        
+        detectionToggle.textContent = 'Disable Garbage Detection';
+        detectionToggle.classList.add('active');
+        detectedObjects.style.display = 'block';
+        resizeCanvas();
+        
+        // Run detection every 2000ms (2 seconds) to reduce interference with video stream
+        detectionInterval = setInterval(detectObjects, 2000);
+        detectObjects(); // Run immediately
+      } else {
+        detectionToggle.textContent = 'Enable Garbage Detection';
+        detectionToggle.classList.remove('active');
+        detectedObjects.style.display = 'none';
+        if (detectionInterval) {
+          clearInterval(detectionInterval);
+          detectionInterval = null;
+        }
+        // Video will continue to update via videoUpdateInterval
+      }
+    }
+    
+    // Start continuous video update loop - optimized for low latency
+    function startVideoUpdate() {
+      if (videoUpdateInterval) {
+        // Clear any existing interval or animation frame
+        if (typeof videoUpdateInterval === 'number') {
+          cancelAnimationFrame(videoUpdateInterval);
+        } else {
+          clearInterval(videoUpdateInterval);
+        }
+      }
+      // Use requestAnimationFrame for smoother, lower latency updates (60 FPS)
+      function animateVideo() {
+        updateVideoCanvas();
+        videoUpdateInterval = requestAnimationFrame(animateVideo);
+      }
+      videoUpdateInterval = requestAnimationFrame(animateVideo);
+      updateVideoCanvas(); // Initial draw
+    }
+    
+    // Stop video update loop
+    function stopVideoUpdate() {
+      if (videoUpdateInterval) {
+        // Handle both setInterval and requestAnimationFrame
+        if (typeof videoUpdateInterval === 'number') {
+          cancelAnimationFrame(videoUpdateInterval);
+        } else {
+          clearInterval(videoUpdateInterval);
+        }
+        videoUpdateInterval = null;
+      }
+    }
+    
+    // Simple video stream - just load and display
+    videoFeed.addEventListener('load', () => {
+      if (videoFeed.naturalWidth > 0 && videoFeed.naturalHeight > 0) {
+        if (!hasConnectedStream) {
+          console.log('Video stream connected:', videoFeed.src);
+          hideLoader();
+          hasConnectedStream = true;
+          const inspectionMain = document.getElementById('inspection-main');
+          if (inspectionMain) {
+            inspectionMain.classList.add('stream-connected');
+          }
+          showEndInspectionButton();
+        }
+        videoStatus.textContent = 'LIVE';
+        videoStatus.className = 'video-status live';
+        resizeCanvas();
+        startVideoUpdate();
+        if (retryTimeoutId) {
+          clearTimeout(retryTimeoutId);
+          retryTimeoutId = null;
+        }
+      }
+    });
+    
+    // Ignore errors - MJPEG streams can have occasional errors during frame transitions
+    videoFeed.addEventListener('error', () => {
+      if (!hasConnectedStream) {
+        console.warn('Video stream error - awaiting connection...');
+        showLoader(
+          'Still looking for the drone feed…',
+          'Please ensure the drone stream is reachable on the network.',
+          true
+        );
+        videoStatus.textContent = 'ERROR';
+        videoStatus.className = 'video-status error';
+        scheduleStreamRetry();
+      }
+    });
+    
+    // Update canvas on every image load (for MJPEG streams)
+    videoFeed.addEventListener('load', () => {
+      // Canvas is updated continuously via videoUpdateInterval
+      resizeCanvas();
+    });
+    
+    detectionToggle.addEventListener('click', toggleDetection);
+    detectionToggle.disabled = true;
+    
+    // Handle window resize
+    window.addEventListener('resize', () => {
+      resizeCanvas();
+    });
+    
+    // Initialize - simple video stream
+    // Start video update once frames arrive
+    showLoader('Connecting to drone feed…', 'Awaiting first frame from live stream.');
+    resizeCanvas();
+    loadModel();
+
+    // Connect button - simple stream update
+    document.getElementById('connect-btn').addEventListener('click', () => {
+      const input = document.getElementById('camera-url-input');
+      if (input && input.value) {
+        currentStreamUrl = input.value;
+        console.log('Connecting to stream:', currentStreamUrl);
+        hasConnectedStream = false;
+        if (retryTimeoutId) {
+          clearTimeout(retryTimeoutId);
+          retryTimeoutId = null;
+        }
+        const inspectionMain = document.getElementById('inspection-main');
+        if (inspectionMain) {
+          inspectionMain.classList.remove('stream-connected');
+        }
+        showLoader('Connecting to drone feed…', 'Attempting handshake with the provided stream URL.');
+        reconnectStream(false);
+      }
+    });
+
+    if (loaderRetryBtn) {
+      loaderRetryBtn.addEventListener('click', () => {
+        loaderRetryBtn.style.display = 'none';
+        reconnectStream(false);
+      });
+    }
+  </script>
+</body>
+</html>
+
+

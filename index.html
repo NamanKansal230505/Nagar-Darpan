@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Nagardarpan — Your City, Your Sensors, Your Rewards</title>
+    <meta name="description" content="Nagardarpan is a futuristic, gamified IoT platform monitoring AQI and cleanliness with sensors and drones. Earn rewards as your ward improves." />
+
+    <!-- Favicon / App Icons (placeholders) -->
+    <link rel="icon" href="/favicon.ico" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <link rel="manifest" href="/site.webmanifest" />
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
+
+    <link rel="stylesheet" href="css/styles.css" />
+  </head>
+  <body>
+    <!-- Navigation -->
+    <header class="navbar">
+      <div class="container nav-inner">
+        <a href="#top" class="brand" aria-label="Nagardarpan home">
+          <span class="brand-mark" aria-hidden="true">
+            <!-- Minimal futuristic logo (inline SVG) -->
+            <svg width="28" height="28" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <circle cx="14" cy="14" r="12" class="logo-ring"/>
+              <path d="M6 14C6 9.5817 9.5817 6 14 6" class="logo-arc"/>
+            </svg>
+          </span>
+          <span class="brand-name">Nagardarpan</span>
+        </a>
+
+        <nav class="nav-links" aria-label="Primary">
+          <a href="#how-it-works">How It Works</a>
+          <a href="#features">Features</a>
+          <a href="#rewards">Rewards</a>
+          <a href="#join">Join</a>
+        </nav>
+
+        <div class="nav-actions">
+          <button class="btn btn-outline" id="login-btn" aria-label="Login">Login</button>
+          <button class="hamburger" aria-label="Open menu" aria-expanded="false" aria-controls="mobile-menu">
+            <span></span><span></span><span></span>
+          </button>
+        </div>
+      </div>
+
+      <nav id="mobile-menu" class="mobile-menu" aria-label="Mobile">
+        <a href="#how-it-works">How It Works</a>
+        <a href="#features">Features</a>
+        <a href="#rewards">Rewards</a>
+        <a href="#join">Join</a>
+        <button class="btn btn-outline" id="login-btn-mobile">Login</button>
+      </nav>
+    </header>
+
+    <!-- Hero -->
+    <main id="top">
+      <section class="section hero" aria-label="Hero">
+        <div class="hero-bg" aria-hidden="true">
+          <!-- Animated topographic/data pulses background -->
+          <div class="grid-pulse"></div>
+          <div class="orb orb-a"></div>
+          <div class="orb orb-b"></div>
+          <div class="orb orb-c"></div>
+          <canvas class="mesh-canvas" aria-hidden="true"></canvas>
+        </div>
+        <div class="container hero-inner fade-up">
+          <h1>Your City, Your Data, Your Rewards</h1>
+          <p>Nagardarpan is a live dashboard for your neighborhood's environment. Help improve your ward's AQI and cleanliness scores to earn real rewards.</p>
+          <div class="cta-row">
+            <a href="#join" class="btn btn-accent btn-lg">Join the Beta</a>
+          </div>
+        </div>
+      </section>
+
+      <!-- Metrics Strip: icons with text -->
+      <section class="section metrics-strip" aria-label="Key metrics">
+        <div class="container metrics">
+          <div class="metric">
+            <img class="icon-img" src="assets/aqi.svg" alt="AQI" />
+            <div class="metric-text">
+              <strong>AQI</strong>
+              <span>PM2.5, PM10, O3</span>
+            </div>
+          </div>
+          <div class="metric">
+            <img class="icon-img" src="assets/clean.svg" alt="Cleanliness" />
+            <div class="metric-text">
+              <strong>Cleanliness</strong>
+              <span>Waste pickup & bins</span>
+            </div>
+          </div>
+          <div class="metric">
+            <img class="icon-img" src="assets/drone.svg" alt="Drone" />
+            <div class="metric-text">
+              <strong>Drones</strong>
+              <span>Autonomous inspections</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- How It Works -->
+      <section id="how-it-works" class="section section-padded">
+        <div class="container">
+          <h2 class="section-title fade-up">How It Works</h2>
+          <div class="steps-grid">
+            <article class="step-card fade-up">
+              <span class="step-num">1</span>
+              <div class="icon">
+                <svg viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                  <path class="i-stroke" d="M10 16h8l4 4h4l4-4h8"/>
+                  <circle class="i-stroke" cx="24" cy="24" r="4"/>
+                  <path class="i-stroke" d="M6 10c6-6 30-6 36 0"/>
+                  <path class="i-stroke" d="M10 14c4-4 24-4 28 0"/>
+                </svg>
+              </div>
+              <div class="step-body">
+                <h3 class="step-title">MONITOR</h3>
+                <ul class="step-points">
+                  <li>IoT sensors track AQI and cleanliness.</li>
+                  <li>Drones run periodic visual inspections.</li>
+                  <li>Data flows 24/7 to the Nagardarpan cloud.</li>
+                </ul>
+              </div>
+            </article>
+            <article class="step-card fade-up">
+              <span class="step-num">2</span>
+              <div class="icon">
+                <svg viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                  <rect class="i-stroke" x="8" y="20" width="8" height="18" rx="2"/>
+                  <rect class="i-stroke" x="20" y="14" width="8" height="24" rx="2"/>
+                  <rect class="i-stroke" x="32" y="8" width="8" height="30" rx="2"/>
+                </svg>
+              </div>
+              <div class="step-body">
+                <h3 class="step-title">ANALYZE & RANK</h3>
+                <ul class="step-points">
+                  <li>Algorithms compute live Environmental Scores.</li>
+                  <li>Each ward gets a transparent ranking.</li>
+                  <li>See trends and alerts in real time.</li>
+                </ul>
+              </div>
+            </article>
+            <article class="step-card fade-up">
+              <span class="step-num">3</span>
+              <div class="icon">
+                <svg viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                  <rect class="i-stroke" x="8" y="20" width="32" height="20" rx="3"/>
+                  <path class="i-stroke" d="M8 20h32M24 20v20"/>
+                  <path class="i-stroke" d="M12 20c0-6 6-8 12-8s12 2 12 8"/>
+                </svg>
+              </div>
+              <div class="step-body">
+                <h3 class="step-title">GET REWARDED</h3>
+                <ul class="step-points">
+                  <li>Improved ward scores earn CivicPoints.</li>
+                  <li>Redeem at local partners and transit.</li>
+                  <li>Fund and vote on community projects.</li>
+                </ul>
+              </div>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <!-- Features -->
+      <section id="features" class="section section-padded">
+        <div class="container">
+          <h2 class="section-title fade-up">Data-Driven Features</h2>
+          <div class="bento-grid">
+            <!-- Panel 1: Live Environmental Map (mock) -->
+            <article class="panel glass map-panel fade-up">
+              <header>
+                <h3>Live Environmental Map</h3>
+                <span class="badge">Mock</span>
+              </header>
+              <div class="map-mock">
+                <img class="panel-corner-icon" src="assets/map.svg" alt="Map" />
+                <div class="zone zone-good" style="left:8%;top:22%"></div>
+                <div class="zone zone-mod" style="left:44%;top:40%"></div>
+                <div class="zone zone-bad" style="left:72%;top:58%"></div>
+                <div class="sensor-ping" style="left:30%;top:30%"></div>
+                <div class="sensor-ping" style="left:60%;top:50%"></div>
+                <div class="sensor-ping" style="left:20%;top:70%"></div>
+              </div>
+              <footer class="legend">
+                <span><i class="dot good"></i> AQI Good</span>
+                <span><i class="dot mod"></i> Moderate</span>
+                <span><i class="dot bad"></i> Poor</span>
+              </footer>
+            </article>
+
+            <!-- Panel 2: Real-time Data Feeds (mock) -->
+            <article class="panel glass feeds-panel fade-up">
+              <header>
+                <h3>Real-time Data Feeds</h3>
+                <span class="badge">Mock</span>
+              </header>
+              <div class="feeds">
+                <div class="feed">
+                  <div class="feed-head">
+                    <span class="label">AQI (PM2.5)</span>
+                    <span class="value good">28</span>
+                  </div>
+                  <div class="sparkline">
+                    <span class="bar" style="--h:36%"></span>
+                    <span class="bar" style="--h:48%"></span>
+                    <span class="bar" style="--h:28%"></span>
+                    <span class="bar" style="--h:42%"></span>
+                    <span class="bar" style="--h:26%"></span>
+                    <span class="bar" style="--h:38%"></span>
+                    <span class="bar" style="--h:32%"></span>
+                  </div>
+                  <div class="chip good">Good</div>
+                </div>
+
+                <div class="feed">
+                  <div class="feed-head">
+                    <span class="label">Cleanliness</span>
+                    <span class="value good">95%</span>
+                  </div>
+                  <div class="sparkline">
+                    <span class="bar" style="--h:70%"></span>
+                    <span class="bar" style="--h:76%"></span>
+                    <span class="bar" style="--h:68%"></span>
+                    <span class="bar" style="--h:82%"></span>
+                    <span class="bar" style="--h:74%"></span>
+                    <span class="bar" style="--h:79%"></span>
+                    <span class="bar" style="--h:88%"></span>
+                  </div>
+                  <div class="chip good">Strong</div>
+                </div>
+              </div>
+            </article>
+
+            <!-- Panel 3: Drone Inspection -->
+            <article class="panel glass drone-panel fade-up">
+              <header>
+                <h3>Autonomous Drone Inspection</h3>
+              </header>
+              <div class="drone-vis">
+                <picture>
+                  <source srcset="assets/drone.gif" type="image/gif" />
+                  <img class="drone-img" src="assets/drone.svg" alt="Futuristic inspection drone" onerror="this.onerror=null;this.src='assets/drone.svg'" />
+                </picture>
+                <p>Our drones perform periodic inspections, using computer vision to identify and flag areas needing attention, ensuring data accuracy.</p>
+              </div>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <!-- Rewards -->
+      <section id="rewards" class="section section-padded">
+        <div class="container">
+          <h2 class="section-title fade-up">Turn Your Civic Pride into Points.</h2>
+          <p class="section-subtitle fade-up">CivicPoints are more than just a score. Redeem them for:</p>
+          <div class="rewards-grid">
+            <article class="reward-card fade-up">
+              <div class="icon">
+                <img class="icon-img" src="assets/localbiz.svg" alt="Local businesses" />
+              </div>
+              <h3>Local Businesses</h3>
+              <p>Discounts at local cafes and shops.</p>
+            </article>
+            <article class="reward-card fade-up">
+              <div class="icon">
+                <img class="icon-img" src="assets/transit.svg" alt="Public transit" />
+              </div>
+              <h3>Public Transit</h3>
+              <p>Credits for public transportation.</p>
+            </article>
+            <article class="reward-card fade-up">
+              <div class="icon">
+                <img class="icon-img" src="assets/community.svg" alt="Community projects" />
+              </div>
+              <h3>Community Projects</h3>
+              <p>Votes for community improvement projects.</p>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <!-- Join / Final CTA -->
+      <section id="join" class="section section-cta">
+        <div class="container cta-inner fade-up">
+          <h2>Help Build the Smart City of Tomorrow.</h2>
+          <p>Join the waitlist and be the first to bring Nagardarpan to your neighborhood.</p>
+          <form class="cta-form" action="#" method="post" onsubmit="return false;" aria-label="Get Early Access">
+            <label for="email" class="sr-only">Email address</label>
+            <input id="email" name="email" type="email" placeholder="Enter your email" required />
+            <button type="submit" class="btn btn-accent btn-lg">Get Early Access</button>
+          </form>
+        </div>
+      </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+      <div class="container footer-inner">
+        <span>© 2025 Nagardarpan</span>
+        <nav aria-label="Footer">
+          <a href="#">Privacy Policy</a>
+          <a href="#">Terms of Use</a>
+          <a href="#">Contact</a>
+        </nav>
+      </div>
+    </footer>
+
+    <!-- Login Modal -->
+    <div id="login-modal" class="login-modal" aria-hidden="true" role="dialog" aria-labelledby="login-title">
+      <div class="login-overlay"></div>
+      <div class="login-container">
+        <button class="login-close" aria-label="Close login modal">&times;</button>
+        <div class="login-header">
+          <h2 id="login-title">Choose Your Portal</h2>
+          <p>Select your role to access the Nagardarpan dashboard</p>
+        </div>
+        <div class="login-options">
+          <article class="login-card" data-role="municipal">
+            <div class="login-card-bg"></div>
+            <div class="login-icon">
+              <svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                <rect x="12" y="10" width="40" height="44" rx="6" fill="none" stroke="#18e0b5" stroke-width="2.5"/>
+                <rect x="16" y="18" width="32" height="4" rx="2" fill="#18e0b5" opacity="0.6"/>
+                <rect x="16" y="26" width="24" height="4" rx="2" fill="#18e0b5" opacity="0.4"/>
+                <circle cx="48" cy="44" r="6" fill="none" stroke="#43ff88" stroke-width="2"/>
+                <path d="M44 44l8 8M52 44l-8 8" stroke="#43ff88" stroke-width="2" stroke-linecap="round"/>
+              </svg>
+            </div>
+            <h3>Municipal Login</h3>
+            <p>Administrative access to city-wide monitoring and analytics</p>
+            <span class="login-arrow">&rarr;</span>
+          </article>
+
+          <article class="login-card" data-role="ward">
+            <div class="login-card-bg"></div>
+            <div class="login-icon">
+              <svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                <path d="M32 8L12 20v24l20 12 20-12V20L32 8Z" fill="none" stroke="#18e0b5" stroke-width="2.5"/>
+                <circle cx="32" cy="32" r="8" fill="none" stroke="#43ff88" stroke-width="2"/>
+                <path d="M24 32h16M32 24v16" stroke="#43ff88" stroke-width="2" stroke-linecap="round"/>
+              </svg>
+            </div>
+            <h3>Ward Login</h3>
+            <p>Ward-level dashboard for local monitoring and management</p>
+            <span class="login-arrow">&rarr;</span>
+          </article>
+
+          <article class="login-card" data-role="citizen">
+            <div class="login-card-bg"></div>
+            <div class="login-icon">
+              <svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                <circle cx="32" cy="24" r="8" fill="none" stroke="#18e0b5" stroke-width="2.5"/>
+                <path d="M16 48c0-8 7.2-16 16-16s16 8 16 16" fill="none" stroke="#18e0b5" stroke-width="2.5"/>
+                <circle cx="32" cy="44" r="3" fill="#43ff88"/>
+              </svg>
+            </div>
+            <h3>Citizen Login</h3>
+            <p>View your ward's performance and track your CivicPoints</p>
+            <span class="login-arrow">&rarr;</span>
+          </article>
+        </div>
+      </div>
+    </div>
+
+    <script src="js/script.js"></script>
+  </body>
+  </html>
+
+

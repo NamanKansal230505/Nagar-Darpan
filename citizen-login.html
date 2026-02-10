@@ -1,0 +1,1237 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Citizen Login — Nagardarpan</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    :root {
+      --bg: #0b1220;
+      --card: rgba(255,255,255,0.06);
+      --card-border: rgba(255,255,255,0.12);
+      --text: #dbe6ff;
+      --muted: #92a0c6;
+      --accent: #18e0b5;
+      --accent-2: #43ff88;
+      --good: #43ff88;
+      --moderate: #ffc857;
+      --poor: #ff6b6b;
+    }
+    body {
+      font-family: 'Outfit', sans-serif;
+      background: 
+        radial-gradient(1200px 600px at 10% -10%, rgba(24,224,181,0.08), transparent 50%),
+        radial-gradient(800px 400px at 100% 0%, rgba(67,255,136,0.06), transparent 50%),
+        linear-gradient(180deg, #0b1220 0%, #0a0f1a 100%);
+      color: var(--text);
+      min-height: 100vh;
+      padding: 20px;
+    }
+    .citizen-header {
+      max-width: 1200px;
+      margin: 0 auto 32px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 16px;
+    }
+    .header-title {
+      font-size: 24px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+    .header-actions {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+    }
+    .btn-outline {
+      padding: 10px 20px;
+      border-radius: 10px;
+      border: 1px solid rgba(255,255,255,0.2);
+      background: transparent;
+      color: var(--text);
+      text-decoration: none;
+      font-weight: 600;
+      font-size: 14px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    .btn-outline:hover {
+      background: rgba(255,255,255,0.06);
+      border-color: var(--accent);
+    }
+    .citizen-main {
+      max-width: 1200px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: 1fr 380px;
+      gap: 24px;
+    }
+    .coins-section {
+      background: var(--card);
+      border: 1px solid var(--card-border);
+      border-radius: 20px;
+      padding: 32px;
+      backdrop-filter: blur(16px);
+      margin-bottom: 24px;
+    }
+    .coins-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 24px;
+      flex-wrap: wrap;
+      gap: 16px;
+    }
+    .coins-title {
+      font-size: 22px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+    .ward-badge {
+      padding: 8px 16px;
+      background: rgba(24,224,181,0.15);
+      border: 1px solid var(--accent);
+      border-radius: 999px;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--accent);
+    }
+    .coins-display {
+      text-align: center;
+      padding: 32px;
+      background: rgba(255,255,255,0.04);
+      border-radius: 16px;
+      border: 2px solid rgba(255,200,87,0.3);
+      margin-bottom: 24px;
+    }
+    .coins-value {
+      font-size: 64px;
+      font-weight: 900;
+      background: linear-gradient(135deg, #ffc857, #ffb03a);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      line-height: 1;
+      margin-bottom: 8px;
+      letter-spacing: -0.04em;
+    }
+    .coins-label {
+      font-size: 14px;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      font-weight: 600;
+      margin-bottom: 12px;
+    }
+    .coins-equivalent {
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--moderate);
+      margin-top: 12px;
+    }
+    .performance-info {
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 24px;
+    }
+    .performance-title {
+      font-size: 14px;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 12px;
+      font-weight: 600;
+    }
+    .performance-value {
+      font-size: 32px;
+      font-weight: 800;
+      color: var(--accent);
+      margin-bottom: 8px;
+      letter-spacing: -0.02em;
+    }
+    .performance-desc {
+      font-size: 13px;
+      color: var(--muted);
+      line-height: 1.6;
+    }
+    .redeem-section {
+      margin-top: 24px;
+    }
+    .redeem-title {
+      font-size: 18px;
+      font-weight: 700;
+      margin-bottom: 16px;
+      letter-spacing: -0.01em;
+    }
+    .redeem-btn {
+      width: 100%;
+      padding: 16px;
+      background: linear-gradient(135deg, var(--accent), var(--good));
+      border: none;
+      border-radius: 12px;
+      color: var(--bg);
+      font-family: 'Outfit', sans-serif;
+      font-size: 16px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      box-shadow: 0 4px 12px rgba(24,224,181,0.3);
+    }
+    .redeem-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(24,224,181,0.4);
+    }
+    .coupons-section {
+      background: var(--card);
+      border: 1px solid var(--card-border);
+      border-radius: 20px;
+      padding: 32px;
+      backdrop-filter: blur(16px);
+      margin-bottom: 24px;
+    }
+    .coupons-header {
+      margin-bottom: 24px;
+    }
+    .coupons-title {
+      font-size: 22px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      margin-bottom: 8px;
+    }
+    .coupons-subtitle {
+      font-size: 14px;
+      color: var(--muted);
+    }
+    .coupons-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 16px;
+    }
+    .coupon-card {
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 16px;
+      padding: 20px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      position: relative;
+      overflow: hidden;
+    }
+    .coupon-card::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+    .coupon-card:hover {
+      transform: translateY(-4px);
+      border-color: var(--accent);
+      box-shadow: 0 8px 24px rgba(24,224,181,0.2);
+    }
+    .coupon-card:hover::before {
+      opacity: 1;
+      background: linear-gradient(135deg, rgba(24,224,181,0.1), transparent);
+    }
+    .coupon-brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+    .coupon-icon {
+      width: 48px;
+      height: 48px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+      background: rgba(255,255,255,0.1);
+    }
+    .coupon-brand-name {
+      font-size: 18px;
+      font-weight: 700;
+      letter-spacing: -0.01em;
+    }
+    .coupon-discount {
+      font-size: 32px;
+      font-weight: 900;
+      color: var(--accent);
+      margin-bottom: 8px;
+      letter-spacing: -0.02em;
+    }
+    .coupon-desc {
+      font-size: 13px;
+      color: var(--muted);
+      margin-bottom: 16px;
+      line-height: 1.5;
+    }
+    .coupon-code {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px;
+      background: rgba(255,255,255,0.06);
+      border-radius: 8px;
+      margin-bottom: 12px;
+    }
+    .coupon-code-text {
+      font-family: 'Courier New', monospace;
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--accent);
+      letter-spacing: 0.1em;
+    }
+    .coupon-code-copy {
+      background: transparent;
+      border: none;
+      color: var(--muted);
+      cursor: pointer;
+      font-size: 16px;
+      padding: 4px;
+      transition: color 0.2s ease;
+    }
+    .coupon-code-copy:hover {
+      color: var(--accent);
+    }
+    .coupon-redeem-btn {
+      width: 100%;
+      padding: 12px;
+      background: linear-gradient(135deg, var(--accent), var(--good));
+      border: none;
+      border-radius: 8px;
+      color: var(--bg);
+      font-family: 'Outfit', sans-serif;
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    .coupon-redeem-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(24,224,181,0.3);
+    }
+    .grievance-section {
+      background: var(--card);
+      border: 1px solid var(--card-border);
+      border-radius: 20px;
+      padding: 32px;
+      backdrop-filter: blur(16px);
+      margin-bottom: 24px;
+    }
+    .grievance-header {
+      margin-bottom: 24px;
+    }
+    .grievance-title {
+      font-size: 22px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      margin-bottom: 8px;
+    }
+    .grievance-subtitle {
+      font-size: 14px;
+      color: var(--muted);
+    }
+    .grievance-form {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .form-label {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .form-input,
+    .form-textarea {
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 10px;
+      padding: 12px 16px;
+      color: var(--text);
+      font-family: 'Outfit', sans-serif;
+      font-size: 14px;
+      transition: all 0.2s ease;
+    }
+    .form-input:focus,
+    .form-textarea:focus {
+      outline: none;
+      border-color: var(--accent);
+      background: rgba(255,255,255,0.06);
+    }
+    .form-textarea {
+      min-height: 120px;
+      resize: vertical;
+    }
+    .form-submit {
+      padding: 14px 24px;
+      background: linear-gradient(135deg, var(--accent), var(--good));
+      border: none;
+      border-radius: 10px;
+      color: var(--bg);
+      font-family: 'Outfit', sans-serif;
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      box-shadow: 0 4px 12px rgba(24,224,181,0.3);
+    }
+    .form-submit:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(24,224,181,0.4);
+    }
+    .sidebar {
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+    }
+    .chatbot-widget {
+      background: var(--card);
+      border: 1px solid var(--card-border);
+      border-radius: 20px;
+      padding: 24px;
+      backdrop-filter: blur(16px);
+      position: relative;
+      height: 600px;
+      display: flex;
+      flex-direction: column;
+    }
+    .chatbot-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 20px;
+      padding-bottom: 16px;
+      border-bottom: 1px solid var(--card-border);
+    }
+    .chatbot-title {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .chatbot-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--accent), var(--good));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+    }
+    .chatbot-title-text {
+      font-size: 18px;
+      font-weight: 700;
+      letter-spacing: -0.01em;
+    }
+    .chatbot-minimize {
+      background: transparent;
+      border: none;
+      color: var(--muted);
+      font-size: 20px;
+      cursor: pointer;
+      padding: 4px;
+      transition: color 0.2s ease;
+    }
+    .chatbot-minimize:hover {
+      color: var(--text);
+    }
+    .chatbot-messages {
+      flex: 1;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      margin-bottom: 16px;
+      padding-right: 8px;
+    }
+    .chatbot-messages::-webkit-scrollbar {
+      width: 6px;
+    }
+    .chatbot-messages::-webkit-scrollbar-track {
+      background: rgba(255,255,255,0.05);
+      border-radius: 10px;
+    }
+    .chatbot-messages::-webkit-scrollbar-thumb {
+      background: rgba(255,255,255,0.2);
+      border-radius: 10px;
+    }
+    .message {
+      display: flex;
+      gap: 12px;
+      animation: messageSlide 0.3s ease;
+    }
+    @keyframes messageSlide {
+      from {
+        opacity: 0;
+        transform: translateY(10px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+    .message.user {
+      flex-direction: row-reverse;
+    }
+    .message-avatar {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+      flex-shrink: 0;
+    }
+    .message.user .message-avatar {
+      background: linear-gradient(135deg, var(--accent), var(--good));
+      color: var(--bg);
+    }
+    .message.bot .message-avatar {
+      background: rgba(255,255,255,0.1);
+      color: var(--accent);
+    }
+    .message-content {
+      flex: 1;
+      max-width: 80%;
+    }
+    .message-bubble {
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 12px;
+      padding: 12px 16px;
+      font-size: 14px;
+      line-height: 1.5;
+      word-wrap: break-word;
+    }
+    .message.user .message-bubble {
+      background: linear-gradient(135deg, rgba(24,224,181,0.2), rgba(67,255,136,0.15));
+      border-color: var(--accent);
+    }
+    .chatbot-input-area {
+      display: flex;
+      gap: 8px;
+      align-items: flex-end;
+    }
+    .chatbot-input {
+      flex: 1;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 10px;
+      padding: 12px 16px;
+      color: var(--text);
+      font-family: 'Outfit', sans-serif;
+      font-size: 14px;
+      resize: none;
+      min-height: 44px;
+      max-height: 120px;
+      transition: all 0.2s ease;
+    }
+    .chatbot-input:focus {
+      outline: none;
+      border-color: var(--accent);
+      background: rgba(255,255,255,0.06);
+    }
+    .chatbot-send {
+      width: 44px;
+      height: 44px;
+      border-radius: 10px;
+      background: linear-gradient(135deg, var(--accent), var(--good));
+      border: none;
+      color: var(--bg);
+      font-size: 18px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s ease;
+      flex-shrink: 0;
+    }
+    .chatbot-send:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(24,224,181,0.3);
+    }
+    .chatbot-send:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      transform: none;
+    }
+    .typing-indicator {
+      display: flex;
+      gap: 4px;
+      padding: 12px 16px;
+    }
+    .typing-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--muted);
+      animation: typing 1.4s ease-in-out infinite;
+    }
+    .typing-dot:nth-child(2) {
+      animation-delay: 0.2s;
+    }
+    .typing-dot:nth-child(3) {
+      animation-delay: 0.4s;
+    }
+    @keyframes typing {
+      0%, 60%, 100% {
+        transform: translateY(0);
+        opacity: 0.5;
+      }
+      30% {
+        transform: translateY(-8px);
+        opacity: 1;
+      }
+    }
+    @media (max-width: 1024px) {
+      .citizen-main {
+        grid-template-columns: 1fr;
+      }
+      .sidebar {
+        order: -1;
+      }
+      .chatbot-widget {
+        height: 500px;
+      }
+    }
+    @media (max-width: 768px) {
+      .citizen-header {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+      .header-actions {
+        width: 100%;
+        justify-content: space-between;
+      }
+      .coins-display {
+        padding: 24px;
+      }
+      .coins-value {
+        font-size: 48px;
+      }
+      .coupons-grid {
+        grid-template-columns: 1fr;
+      }
+      .chatbot-widget {
+        height: 400px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header class="citizen-header">
+    <h1 class="header-title">Citizen Dashboard</h1>
+    <div class="header-actions">
+      <span class="ward-badge">Raj Nagar Citizen</span>
+      <a href="index.html" class="btn-outline">Logout</a>
+    </div>
+  </header>
+
+  <main class="citizen-main">
+    <div>
+      <!-- Redemption Coins Section -->
+      <section class="coins-section">
+        <div class="coins-header">
+          <h2 class="coins-title">🪙 Redemption Coins</h2>
+        </div>
+        <div class="coins-display">
+          <div class="coins-value">5,000</div>
+          <div class="coins-label">Available Coins</div>
+          <div class="coins-equivalent">= ₹850 Tax Exemption</div>
+        </div>
+        <div class="performance-info">
+          <div class="performance-title">Average Performance</div>
+          <div class="performance-value">75%</div>
+          <div class="performance-desc">
+            Based on your ward's cleanliness score from recent drone inspections. 
+            Higher performance leads to more coins and tax benefits.
+          </div>
+        </div>
+        <div class="redeem-section">
+          <h3 class="redeem-title">Redeem Your Coins</h3>
+          <button class="redeem-btn" id="redeem-tax-btn">Redeem for Tax Exemption</button>
+        </div>
+      </section>
+
+      <!-- Coupons Section -->
+      <section class="coupons-section">
+        <div class="coupons-header">
+          <h2 class="coupons-title">🎟️ Exclusive Coupons</h2>
+          <p class="coupons-subtitle">Redeem your coins for exciting offers</p>
+        </div>
+        <div class="coupons-grid" id="coupons-grid">
+          <!-- Coupons will be populated by JavaScript -->
+        </div>
+      </section>
+
+      <!-- Grievance Section -->
+      <section class="grievance-section">
+        <div class="grievance-header">
+          <h2 class="grievance-title">📝 Write Grievance</h2>
+          <p class="grievance-subtitle">Report issues or concerns in your ward</p>
+        </div>
+        <form class="grievance-form" id="grievance-form">
+          <div class="form-group">
+            <label class="form-label" for="grievance-subject">Subject</label>
+            <input 
+              type="text" 
+              id="grievance-subject" 
+              class="form-input" 
+              placeholder="e.g., Garbage collection issue"
+              required
+            />
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="grievance-category">Category</label>
+            <select id="grievance-category" class="form-input" required>
+              <option value="">Select category</option>
+              <option value="waste">Waste Management</option>
+              <option value="water">Water Supply</option>
+              <option value="road">Road & Infrastructure</option>
+              <option value="electricity">Electricity</option>
+              <option value="other">Other</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="grievance-description">Description</label>
+            <textarea 
+              id="grievance-description" 
+              class="form-textarea" 
+              placeholder="Describe your grievance in detail..."
+              required
+            ></textarea>
+          </div>
+          <button type="submit" class="form-submit">Submit Grievance</button>
+        </form>
+      </section>
+    </div>
+
+    <!-- Sidebar with Chatbot -->
+    <aside class="sidebar">
+      <div class="chatbot-widget" id="chatbot-widget">
+        <div class="chatbot-header">
+          <div class="chatbot-title">
+            <div class="chatbot-icon">🤖</div>
+            <div class="chatbot-title-text">AI Assistant</div>
+          </div>
+          <div style="display: flex; gap: 8px; align-items: center;">
+            <button class="chatbot-minimize" id="chatbot-settings" title="Settings" style="font-size: 16px;">⚙️</button>
+            <button class="chatbot-minimize" id="chatbot-minimize">−</button>
+          </div>
+        </div>
+        <div class="chatbot-messages" id="chatbot-messages">
+          <div class="message bot">
+            <div class="message-avatar">🤖</div>
+            <div class="message-content">
+              <div class="message-bubble">
+                Hello! I'm your AI assistant. How can I help you today? You can ask about your coins, ward performance, or any civic services.
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="chatbot-input-area">
+          <textarea 
+            id="chatbot-input" 
+            class="chatbot-input" 
+            placeholder="Type your message..."
+            rows="1"
+          ></textarea>
+          <button class="chatbot-send" id="chatbot-send">➤</button>
+        </div>
+      </div>
+    </aside>
+  </main>
+
+  <script>
+    // Citizen data
+    const citizenData = {
+      ward: 'Raj Nagar',
+      coins: 5000,
+      taxExemption: 850,
+      performance: 75
+    };
+
+    // Coupons data
+    const coupons = [
+      {
+        brand: 'IRCTC',
+        icon: '🚂',
+        discount: '10% OFF',
+        description: 'Get 10% off on train bookings. Use code to redeem.',
+        code: 'CIVIC10',
+        url: 'https://www.irctc.co.in'
+      },
+      {
+        brand: 'Zomato',
+        icon: '🍔',
+        discount: '₹100 OFF',
+        description: 'Get ₹100 off on orders above ₹500. Valid on food delivery.',
+        code: 'CIVIC100',
+        url: 'https://www.zomato.com'
+      },
+      {
+        brand: 'Swiggy',
+        icon: '🍕',
+        discount: '₹150 OFF',
+        description: 'Get ₹150 off on orders above ₹600. Limited time offer.',
+        code: 'CIVIC150',
+        url: 'https://www.swiggy.com'
+      }
+    ];
+
+    // Render coupons
+    function renderCoupons() {
+      const grid = document.getElementById('coupons-grid');
+      if (!grid) return;
+      grid.innerHTML = coupons.map(coupon => `
+        <div class="coupon-card">
+          <div class="coupon-brand">
+            <div class="coupon-icon">${coupon.icon}</div>
+            <div class="coupon-brand-name">${coupon.brand}</div>
+          </div>
+          <div class="coupon-discount">${coupon.discount}</div>
+          <div class="coupon-desc">${coupon.description}</div>
+          <div class="coupon-code">
+            <span class="coupon-code-text">${coupon.code}</span>
+            <button class="coupon-code-copy" onclick="copyCouponCode('${coupon.code}')" title="Copy code">📋</button>
+          </div>
+          <button class="coupon-redeem-btn" onclick="window.open('${coupon.url}', '_blank')">
+            Visit ${coupon.brand} →
+          </button>
+        </div>
+      `).join('');
+    }
+    
+    // Also make entire coupon card clickable
+    function makeCouponCardsClickable() {
+      document.querySelectorAll('.coupon-card').forEach((card, index) => {
+        card.addEventListener('click', (e) => {
+          // Don't trigger if clicking on buttons inside
+          if (e.target.closest('.coupon-code-copy') || e.target.closest('.coupon-redeem-btn')) {
+            return;
+          }
+          // Redirect to coupon website
+          window.open(coupons[index].url, '_blank');
+        });
+        card.style.cursor = 'pointer';
+      });
+    }
+
+    // Copy coupon code
+    window.copyCouponCode = function(code) {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(code).then(() => {
+          alert(`Coupon code "${code}" copied to clipboard!`);
+        }).catch(() => {
+          // Fallback
+          const textarea = document.createElement('textarea');
+          textarea.value = code;
+          document.body.appendChild(textarea);
+          textarea.select();
+          document.execCommand('copy');
+          document.body.removeChild(textarea);
+          alert(`Coupon code "${code}" copied to clipboard!`);
+        });
+      } else {
+        // Fallback for older browsers
+        const textarea = document.createElement('textarea');
+        textarea.value = code;
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textarea);
+        alert(`Coupon code "${code}" copied to clipboard!`);
+      }
+    };
+
+    // Redeem coupon - redirect directly to website
+    window.redeemCoupon = function(url) {
+      window.open(url, '_blank');
+    };
+
+    // Update coins display
+    function updateCoinsDisplay() {
+      const coinsValue = document.querySelector('.coins-value');
+      if (coinsValue) {
+        coinsValue.textContent = citizenData.coins.toLocaleString();
+      }
+    }
+
+    // Initialize on page load
+    document.addEventListener('DOMContentLoaded', () => {
+      // Check if user is logged in
+      const isLoggedIn = sessionStorage.getItem('citizenLoggedIn');
+      if (!isLoggedIn) {
+        // Redirect to login page if not logged in
+        window.location.href = 'citizen-login-page.html';
+        return;
+      }
+      
+      // Render coupons
+      renderCoupons();
+      // Make coupon cards clickable after rendering
+      setTimeout(() => {
+        makeCouponCardsClickable();
+      }, 100);
+      updateCoinsDisplay();
+
+      // Redeem tax exemption
+      const redeemTaxBtn = document.getElementById('redeem-tax-btn');
+      if (redeemTaxBtn) {
+        redeemTaxBtn.addEventListener('click', () => {
+          if (citizenData.coins < 5000) {
+            alert(`Insufficient coins! You need 5,000 coins for tax exemption. You currently have ${citizenData.coins} coins.`);
+            return;
+          }
+          
+          if (confirm(`Redeem 5,000 coins for ₹${citizenData.taxExemption} tax exemption?\n\nThis will be applied to your next tax payment.`)) {
+            citizenData.coins -= 5000;
+            alert(`✅ Success! Your ₹${citizenData.taxExemption} tax exemption has been applied.\n\nRemaining coins: ${citizenData.coins}`);
+            updateCoinsDisplay();
+          }
+        });
+      }
+
+      // Grievance form submission
+      const grievanceForm = document.getElementById('grievance-form');
+      if (grievanceForm) {
+        grievanceForm.addEventListener('submit', (e) => {
+          e.preventDefault();
+          
+          const subject = document.getElementById('grievance-subject').value;
+          const category = document.getElementById('grievance-category').value;
+          const description = document.getElementById('grievance-description').value;
+          
+          // Save to localStorage
+          const grievances = JSON.parse(localStorage.getItem('grievances') || '[]');
+          grievances.push({
+            id: Date.now(),
+            ward: citizenData.ward,
+            subject,
+            category,
+            description,
+            timestamp: new Date().toISOString(),
+            status: 'pending'
+          });
+          localStorage.setItem('grievances', JSON.stringify(grievances));
+          
+          alert('✅ Grievance submitted successfully! Your concern has been registered and will be reviewed by the municipal team.');
+          
+          // Reset form
+          e.target.reset();
+        });
+      }
+
+      // AI Chatbot
+      const chatbotMessages = document.getElementById('chatbot-messages');
+      const chatbotInput = document.getElementById('chatbot-input');
+      const chatbotSend = document.getElementById('chatbot-send');
+
+      if (!chatbotMessages || !chatbotInput || !chatbotSend) return;
+
+      // Auto-resize textarea
+      chatbotInput.addEventListener('input', function() {
+        this.style.height = 'auto';
+        this.style.height = Math.min(this.scrollHeight, 120) + 'px';
+      });
+
+      // Real chatbot using Hugging Face Inference API
+      // Get your free API key from: https://huggingface.co/settings/tokens
+      // Then set it here or use localStorage to store it
+      let HF_API_KEY = localStorage.getItem('hf_api_key') || '';
+      const HF_MODEL = 'mistralai/Mistral-7B-Instruct-v0.2'; // Free open source model
+      
+      // Alternative free models (no API key required, but slower):
+      // - 'microsoft/DialoGPT-medium' (smaller, faster)
+      // - 'facebook/blenderbot-400M-distill' (conversational)
+      
+      // If no API key, use a free endpoint (may be slower)
+      const USE_FREE_ENDPOINT = !HF_API_KEY;
+      
+      // Fallback responses for when API is not available
+      const chatbotResponses = {
+        'hello': 'Hello! How can I help you today?',
+        'hi': 'Hi there! What would you like to know?',
+        'coins': `You currently have ${citizenData.coins.toLocaleString()} coins, which equals ₹${citizenData.taxExemption} tax exemption. You can redeem them for coupons or tax benefits.`,
+        'performance': `Your ward's average performance is ${citizenData.performance}%. This is based on recent drone inspections measuring cleanliness and environmental factors.`,
+        'ward': `You are registered as a citizen of ${citizenData.ward} ward.`,
+        'redeem': `You can redeem your coins in two ways:\n1. Tax Exemption: 5,000 coins = ₹850 off\n2. Coupons: Use coins for IRCTC, Zomato, or Swiggy offers`,
+        'grievance': 'You can submit a grievance using the "Write Grievance" section. Select a category and describe your issue in detail.',
+        'help': 'I can help you with:\n• Coin balance and redemption\n• Ward performance\n• Coupon codes\n• Grievance submission\n• General civic information',
+        'default': 'I understand you\'re asking about that. Let me help you:\n\n• Type "coins" to check your coin balance\n• Type "performance" for ward performance\n• Type "redeem" for redemption options\n• Type "grievance" for grievance submission\n• Type "help" for more options'
+      };
+
+      // Get chatbot response from Hugging Face API
+      async function getChatbotResponse(input) {
+        const lowerInput = input.toLowerCase().trim();
+        
+        // Check for specific keywords first (faster response)
+        if (lowerInput.includes('coins')) {
+          return `You currently have ${citizenData.coins.toLocaleString()} coins, which equals ₹${citizenData.taxExemption} tax exemption. You can redeem them for coupons or tax benefits.`;
+        }
+        if (lowerInput.includes('performance')) {
+          return `Your ward's average performance is ${citizenData.performance}%. This is based on recent drone inspections measuring cleanliness and environmental factors.`;
+        }
+        if (lowerInput.includes('ward')) {
+          return `You are registered as a citizen of ${citizenData.ward} ward.`;
+        }
+        if (lowerInput.includes('redeem')) {
+          return `You can redeem your coins in two ways:\n1. Tax Exemption: 5,000 coins = ₹850 off\n2. Coupons: Use coins for IRCTC, Zomato, or Swiggy offers`;
+        }
+        if (lowerInput.includes('grievance')) {
+          return 'You can submit a grievance using the "Write Grievance" section. Select a category and describe your issue in detail.';
+        }
+        if (lowerInput.includes('help')) {
+          return 'I can help you with:\n• Coin balance and redemption\n• Ward performance\n• Coupon codes\n• Grievance submission\n• General civic information';
+        }
+        
+        // Try to get response from Hugging Face API
+        try {
+          // Prepare context for the AI
+          const systemPrompt = `You are a helpful AI assistant for Nagardarpan, a civic services platform. Help citizens in Raj Nagar ward with:
+- Coin balance: ${citizenData.coins.toLocaleString()} coins = ₹${citizenData.taxExemption} tax exemption
+- Ward performance: ${citizenData.performance}%
+- Redemption: Tax exemption (5,000 coins = ₹850) or coupons (IRCTC, Zomato, Swiggy)
+- Grievance submission
+- General civic information
+
+Be concise, friendly, and helpful. Answer in 2-3 sentences maximum.`;
+          
+          let apiUrl = `https://api-inference.huggingface.co/models/${HF_MODEL}`;
+          let headers = {
+            'Content-Type': 'application/json'
+          };
+          
+          // Add authorization if API key is available
+          if (HF_API_KEY && !USE_FREE_ENDPOINT) {
+            headers['Authorization'] = `Bearer ${HF_API_KEY}`;
+          }
+          
+          // Use a simpler model for free endpoint (no API key)
+          const modelToUse = USE_FREE_ENDPOINT ? 'microsoft/DialoGPT-medium' : HF_MODEL;
+          apiUrl = `https://api-inference.huggingface.co/models/${modelToUse}`;
+          
+          const response = await fetch(apiUrl, {
+            method: 'POST',
+            headers: headers,
+            body: JSON.stringify({
+              inputs: USE_FREE_ENDPOINT 
+                ? input // Simple model just needs user input
+                : `<s>[INST] ${systemPrompt}\n\nUser: ${input}\n\nAssistant: [/INST]`,
+              parameters: {
+                max_new_tokens: 100,
+                temperature: 0.7,
+                top_p: 0.9,
+                return_full_text: false
+              },
+              options: {
+                wait_for_model: true
+              }
+            })
+          });
+          
+          if (!response.ok) {
+            // If model is loading, wait and retry
+            if (response.status === 503) {
+              await new Promise(resolve => setTimeout(resolve, 5000));
+              // Retry once
+              const retryResponse = await fetch(apiUrl, {
+                method: 'POST',
+                headers: headers,
+                body: JSON.stringify({
+                  inputs: USE_FREE_ENDPOINT ? input : `<s>[INST] ${systemPrompt}\n\nUser: ${input}\n\nAssistant: [/INST]`,
+                  parameters: {
+                    max_new_tokens: 100,
+                    temperature: 0.7,
+                    return_full_text: false
+                  }
+                })
+              });
+              
+              if (!retryResponse.ok) {
+                throw new Error('Model is still loading or unavailable');
+              }
+              
+              const retryData = await retryResponse.json();
+              if (retryData && retryData[0] && retryData[0].generated_text) {
+                return retryData[0].generated_text.trim().split('\n')[0];
+              }
+            }
+            throw new Error('API request failed');
+          }
+          
+          const data = await response.json();
+          
+          // Handle different response formats
+          if (data.error) {
+            throw new Error(data.error);
+          }
+          
+          // Extract generated text
+          if (data && data[0] && data[0].generated_text) {
+            let generatedText = data[0].generated_text.trim();
+            // Clean up the response
+            generatedText = generatedText.replace(/\[INST\].*?\[\/INST\]/g, '').trim();
+            generatedText = generatedText.split('\n')[0]; // Take first line
+            return generatedText || chatbotResponses.default;
+          }
+          
+          return chatbotResponses.default;
+        } catch (error) {
+          console.error('Chatbot API error:', error);
+          // Fallback to keyword-based responses
+          for (const [keyword, response] of Object.entries(chatbotResponses)) {
+            if (lowerInput.includes(keyword)) {
+              return response;
+            }
+          }
+          return chatbotResponses.default;
+        }
+      }
+
+      // Add message to chat
+      function addMessage(text, isUser = false) {
+        const messageDiv = document.createElement('div');
+        messageDiv.className = `message ${isUser ? 'user' : 'bot'}`;
+        messageDiv.innerHTML = `
+          <div class="message-avatar">${isUser ? '👤' : '🤖'}</div>
+          <div class="message-content">
+            <div class="message-bubble">${text.replace(/\n/g, '<br>')}</div>
+          </div>
+        `;
+        chatbotMessages.appendChild(messageDiv);
+        chatbotMessages.scrollTop = chatbotMessages.scrollHeight;
+      }
+
+      // Show typing indicator
+      function showTypingIndicator() {
+        const typingDiv = document.createElement('div');
+        typingDiv.className = 'message bot';
+        typingDiv.id = 'typing-indicator';
+        typingDiv.innerHTML = `
+          <div class="message-avatar">🤖</div>
+          <div class="message-content">
+            <div class="typing-indicator">
+              <div class="typing-dot"></div>
+              <div class="typing-dot"></div>
+              <div class="typing-dot"></div>
+            </div>
+          </div>
+        `;
+        chatbotMessages.appendChild(typingDiv);
+        chatbotMessages.scrollTop = chatbotMessages.scrollHeight;
+      }
+
+      // Remove typing indicator
+      function removeTypingIndicator() {
+        const indicator = document.getElementById('typing-indicator');
+        if (indicator) {
+          indicator.remove();
+        }
+      }
+
+      // Send message
+      async function sendMessage() {
+        const input = chatbotInput.value.trim();
+        if (!input) return;
+        
+        // Add user message
+        addMessage(input, true);
+        chatbotInput.value = '';
+        chatbotInput.style.height = 'auto';
+        
+        // Disable send button
+        chatbotSend.disabled = true;
+        
+        // Show typing indicator
+        showTypingIndicator();
+        
+        try {
+          // Get AI response (async)
+          const response = await getChatbotResponse(input);
+          removeTypingIndicator();
+          addMessage(response);
+        } catch (error) {
+          console.error('Error getting chatbot response:', error);
+          removeTypingIndicator();
+          addMessage('Sorry, I encountered an error. Please try again or check your API configuration.');
+        } finally {
+          chatbotSend.disabled = false;
+        }
+      }
+
+      // Send button click
+      chatbotSend.addEventListener('click', sendMessage);
+
+      // Enter key to send
+      chatbotInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' && !e.shiftKey) {
+          e.preventDefault();
+          sendMessage();
+        }
+      });
+
+      // Minimize chatbot
+      const minimizeBtn = document.getElementById('chatbot-minimize');
+      if (minimizeBtn) {
+        minimizeBtn.addEventListener('click', () => {
+          const widget = document.getElementById('chatbot-widget');
+          if (widget) {
+            widget.style.display = widget.style.display === 'none' ? 'flex' : 'none';
+          }
+        });
+      }
+      
+      // Settings button for API key
+      const settingsBtn = document.getElementById('chatbot-settings');
+      if (settingsBtn) {
+        settingsBtn.addEventListener('click', () => {
+          const apiKey = prompt(
+            'Enter your Hugging Face API key (optional)\n\n' +
+            'Get a free API key from: https://huggingface.co/settings/tokens\n' +
+            'Leave empty to use free endpoint (may be slower).\n\n' +
+            'Current key: ' + (HF_API_KEY ? '***' + HF_API_KEY.slice(-4) : 'None'),
+            HF_API_KEY || ''
+          );
+          
+          if (apiKey !== null) {
+            if (apiKey.trim()) {
+              HF_API_KEY = apiKey.trim();
+              localStorage.setItem('hf_api_key', HF_API_KEY);
+              addMessage('✅ API key saved! The AI chatbot will now use your key.', false);
+            } else {
+              HF_API_KEY = '';
+              localStorage.removeItem('hf_api_key');
+              addMessage('ℹ️ Using free endpoint (may be slower).', false);
+            }
+          }
+        });
+      }
+    });
+  </script>
+</body>
+</html>
+

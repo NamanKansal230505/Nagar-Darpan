@@ -1,0 +1,4672 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Municipal Dashboard — Nagardarpan</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="css/styles.css" />
+    <style>
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        font-family: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+        color: var(--text);
+        background: #0b1220;
+        overflow-x: hidden;
+      }
+      :root {
+        --bg: #0b1220;
+        --card: rgba(255,255,255,0.06);
+        --card-border: rgba(255,255,255,0.12);
+        --text: #dbe6ff;
+        --muted: #92a0c6;
+        --accent: #18e0b5;
+        --accent-2: #43ff88;
+        --good: #43ff88;
+        --moderate: #ffc857;
+        --poor: #ff6b6b;
+      }
+
+      .dashboard-header {
+        position: sticky;
+        top: 0;
+        z-index: 1000;
+        backdrop-filter: blur(16px) saturate(160%);
+        background: rgba(9, 14, 26, 0.85);
+        border-bottom: 1px solid rgba(255,255,255,0.1);
+        padding: 16px 24px;
+      }
+      .header-inner {
+        max-width: 1600px;
+        margin: 0 auto;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+      .header-title {
+        font-size: 20px;
+        font-weight: 700;
+        letter-spacing: -0.02em;
+      }
+      .header-actions {
+        display: flex;
+        gap: 12px;
+        align-items: center;
+      }
+      .btn-outline {
+        padding: 8px 16px;
+        border-radius: 10px;
+        border: 1px solid rgba(255,255,255,0.2);
+        background: transparent;
+        color: var(--text);
+        text-decoration: none;
+        font-weight: 500;
+        font-size: 14px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+      }
+      .btn-outline:hover {
+        background: rgba(255,255,255,0.06);
+        border-color: rgba(24,224,181,0.4);
+      }
+      .wards-tiles-section {
+        background: var(--card);
+        border: 1px solid var(--card-border);
+        border-radius: 20px;
+        padding: 24px;
+        backdrop-filter: blur(16px);
+      }
+      .tiles-header {
+        margin-bottom: 24px;
+      }
+      .tiles-header h2 {
+        margin: 0 0 8px;
+        font-size: 22px;
+        font-weight: 700;
+        letter-spacing: -0.02em;
+      }
+      .tiles-header p {
+        margin: 0;
+        color: var(--muted);
+        font-size: 14px;
+      }
+      .wards-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+        gap: 20px;
+      }
+      .ward-tile {
+        background: rgba(255,255,255,0.04);
+        border: 2px solid;
+        border-radius: 16px;
+        padding: 20px;
+        cursor: pointer;
+        transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+        position: relative;
+        overflow: hidden;
+      }
+      .ward-tile::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        opacity: 0;
+        transition: opacity 0.3s ease;
+      }
+      .ward-tile:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 16px 40px rgba(0,0,0,0.4);
+      }
+      .ward-tile.good {
+        border-color: rgba(67,255,136,0.5);
+        background: rgba(67,255,136,0.05);
+      }
+      .ward-tile.good::before {
+        background: linear-gradient(135deg, rgba(67,255,136,0.1), transparent);
+        opacity: 1;
+      }
+      .ward-tile.moderate {
+        border-color: rgba(255,200,87,0.5);
+        background: rgba(255,200,87,0.05);
+      }
+      .ward-tile.moderate::before {
+        background: linear-gradient(135deg, rgba(255,200,87,0.1), transparent);
+        opacity: 1;
+      }
+      .ward-tile.poor {
+        border-color: rgba(255,107,107,0.5);
+        background: rgba(255,107,107,0.05);
+      }
+      .ward-tile.poor::before {
+        background: linear-gradient(135deg, rgba(255,107,107,0.1), transparent);
+        opacity: 1;
+      }
+      .ward-tile-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 16px;
+        position: relative;
+        z-index: 1;
+      }
+      .ward-rank {
+        font-size: 24px;
+        font-weight: 800;
+        color: var(--muted);
+        opacity: 0.5;
+      }
+      .ward-name-tile {
+        font-size: 18px;
+        font-weight: 700;
+        letter-spacing: -0.02em;
+        flex: 1;
+        margin-left: 12px;
+      }
+      .ward-status-badge {
+        padding: 4px 10px;
+        border-radius: 999px;
+        font-size: 11px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+      }
+      .ward-tile.good .ward-status-badge {
+        background: rgba(67,255,136,0.2);
+        color: var(--good);
+        border: 1px solid rgba(67,255,136,0.4);
+      }
+      .ward-tile.moderate .ward-status-badge {
+        background: rgba(255,200,87,0.2);
+        color: var(--moderate);
+        border: 1px solid rgba(255,200,87,0.4);
+      }
+      .ward-tile.poor .ward-status-badge {
+        background: rgba(255,107,107,0.2);
+        color: var(--poor);
+        border: 1px solid rgba(255,107,107,0.4);
+      }
+      .ward-params {
+        display: grid;
+        gap: 12px;
+        position: relative;
+        z-index: 1;
+      }
+      .param-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+      .param-label {
+        font-size: 13px;
+        color: var(--muted);
+        font-weight: 500;
+      }
+      .param-value {
+        font-size: 16px;
+        font-weight: 700;
+        letter-spacing: -0.02em;
+      }
+      .param-value.good { color: var(--good); }
+      .param-value.moderate { color: var(--moderate); }
+      .param-value.poor { color: var(--poor); }
+      .ward-score {
+        margin-top: 12px;
+        padding-top: 12px;
+        border-top: 1px solid rgba(255,255,255,0.1);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        position: relative;
+        z-index: 1;
+      }
+      .score-label {
+        font-size: 12px;
+        color: var(--muted);
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        font-weight: 600;
+      }
+      .score-value {
+        font-size: 28px;
+        font-weight: 800;
+        letter-spacing: -0.03em;
+      }
+      .ward-tile.good .score-value { color: var(--good); }
+      .ward-tile.moderate .score-value { color: var(--moderate); }
+      .ward-tile.poor .score-value { color: var(--poor); }
+      .load-more-btn {
+        margin-top: 24px;
+        width: 100%;
+        padding: 14px 20px;
+        border-radius: 12px;
+        border: 1px solid rgba(24,224,181,0.4);
+        background: rgba(24,224,181,0.1);
+        color: var(--accent);
+        font-family: 'Outfit', sans-serif;
+        font-weight: 600;
+        font-size: 15px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        letter-spacing: -0.01em;
+      }
+      .load-more-btn:hover {
+        background: rgba(24,224,181,0.2);
+        border-color: var(--accent);
+        transform: translateY(-2px);
+        box-shadow: 0 8px 24px rgba(24,224,181,0.2);
+      }
+      .load-more-btn:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+        transform: none;
+      }
+      .ward-tile.deactivated {
+        opacity: 0.6;
+        filter: grayscale(0.4) brightness(0.75);
+        cursor: not-allowed;
+        pointer-events: none;
+      }
+      .ward-tile.deactivated:hover {
+        transform: none;
+        box-shadow: none;
+      }
+      .ward-tile.deactivated .ward-name-tile,
+      .ward-tile.deactivated .param-value,
+      .ward-tile.deactivated .score-value {
+        color: var(--muted);
+        opacity: 0.8;
+      }
+      .drone-inspection-btn {
+        width: 100%;
+        margin-top: 12px;
+        padding: 10px 16px;
+        background: #ff6b6b;
+        border: 1px solid #ff6b6b;
+        border-radius: 10px;
+        color: white;
+        font-size: 13px;
+        font-weight: 600;
+        font-family: 'Outfit', sans-serif;
+        letter-spacing: 0.01em;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        text-transform: uppercase;
+      }
+      .drone-inspection-btn:hover {
+        background: #ff5252;
+        border-color: #ff5252;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(255,107,107,0.3);
+      }
+      .drone-inspection-btn:active {
+        transform: translateY(0);
+      }
+      .ward-tile.deactivated .drone-inspection-btn {
+        opacity: 0.6;
+        cursor: not-allowed;
+        pointer-events: none;
+      }
+
+      /* Cleanliness Leaderboard Section */
+      .leaderboard-section {
+        background: var(--card);
+        border: 1px solid var(--card-border);
+        border-radius: 20px;
+        padding: 24px;
+        backdrop-filter: blur(16px);
+        margin-bottom: 24px;
+      }
+      .leaderboard-header-main {
+        margin-bottom: 20px;
+      }
+      .leaderboard-header-main h2 {
+        margin: 0 0 8px;
+        font-size: 22px;
+        font-weight: 700;
+        letter-spacing: -0.02em;
+      }
+      .leaderboard-header-main p {
+        margin: 0;
+        color: var(--muted);
+        font-size: 14px;
+      }
+      .leaderboard-tabs-main {
+        display: flex;
+        gap: 8px;
+        margin-bottom: 20px;
+      }
+      .leaderboard-tab-main {
+        padding: 10px 24px;
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 10px;
+        color: var(--muted);
+        font-family: 'Outfit', sans-serif;
+        font-size: 14px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.25s ease;
+      }
+      .leaderboard-tab-main:hover {
+        background: rgba(255, 255, 255, 0.08);
+        border-color: rgba(255, 255, 255, 0.15);
+      }
+      .leaderboard-tab-main.active {
+        background: linear-gradient(135deg, var(--accent), var(--good));
+        color: var(--bg);
+        border-color: transparent;
+        box-shadow: 0 2px 8px rgba(24, 224, 181, 0.3);
+      }
+      .leaderboard-content-main {
+        min-height: 300px;
+      }
+      .leaderboard-stair-main {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+      }
+      .leaderboard-item-main {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        padding: 16px;
+        background: rgba(255, 255, 255, 0.04);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 12px;
+        transition: all 0.25s ease;
+      }
+      .leaderboard-item-main:hover {
+        background: rgba(255, 255, 255, 0.06);
+        border-color: rgba(255, 255, 255, 0.15);
+        transform: translateX(4px);
+      }
+      .leaderboard-rank-main {
+        font-size: 24px;
+        font-weight: 800;
+        min-width: 50px;
+        text-align: center;
+        letter-spacing: -0.02em;
+      }
+      .leaderboard-trophy-main {
+        font-size: 32px;
+        min-width: 40px;
+        text-align: center;
+      }
+      .leaderboard-rank-1-main .leaderboard-trophy-main { filter: drop-shadow(0 0 8px rgba(255, 215, 0, 0.6)); }
+      .leaderboard-rank-2-main .leaderboard-trophy-main { filter: drop-shadow(0 0 8px rgba(192, 192, 192, 0.6)); }
+      .leaderboard-rank-3-main .leaderboard-trophy-main { filter: drop-shadow(0 0 8px rgba(205, 127, 50, 0.6)); }
+      .leaderboard-info-main {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+      }
+      .leaderboard-name-main {
+        font-size: 16px;
+        font-weight: 700;
+        letter-spacing: -0.01em;
+      }
+      .leaderboard-details-main {
+        font-size: 12px;
+        color: var(--muted);
+        display: flex;
+        gap: 12px;
+      }
+      .leaderboard-score-main {
+        font-size: 28px;
+        font-weight: 800;
+        min-width: 80px;
+        text-align: right;
+        letter-spacing: -0.02em;
+      }
+      .leaderboard-score-main.excellent { color: var(--good); }
+      .leaderboard-score-main.good { color: var(--good); }
+      .leaderboard-score-main.moderate { color: var(--moderate); }
+      .leaderboard-score-main.poor { color: var(--poor); }
+      .leaderboard-empty-main {
+        text-align: center;
+        padding: 60px 20px;
+        color: var(--muted);
+        font-size: 14px;
+      }
+      .leaderboard-empty-icon-main {
+        font-size: 64px;
+        margin-bottom: 16px;
+        opacity: 0.5;
+      }
+
+      /* Ward Detail Modal */
+      .ward-detail-modal {
+        position: fixed;
+        inset: 0;
+        z-index: 10000;
+        display: grid;
+        place-items: center;
+        opacity: 0;
+        visibility: hidden;
+        transition: opacity 0.3s ease, visibility 0.3s ease;
+        padding: 20px;
+      }
+      .ward-detail-modal.active {
+        opacity: 1;
+        visibility: visible;
+      }
+      .ward-modal-overlay {
+        position: absolute;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.75);
+        backdrop-filter: blur(8px);
+      }
+      .ward-modal-content {
+        position: relative;
+        width: 100%;
+        max-width: 700px;
+        background: rgba(9, 14, 26, 0.95);
+        backdrop-filter: blur(20px);
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        border-radius: 20px;
+        padding: 32px;
+        box-shadow: 0 30px 100px rgba(0, 0, 0, 0.6);
+        transform: scale(0.95) translateY(20px);
+        transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+        max-height: 90vh;
+        overflow-y: auto;
+      }
+      .ward-detail-modal.active .ward-modal-content {
+        transform: scale(1) translateY(0);
+      }
+      .ward-modal-close {
+        position: absolute;
+        top: 20px;
+        right: 20px;
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        border: 1px solid rgba(255,255,255,0.2);
+        background: rgba(255,255,255,0.05);
+        color: var(--text);
+        font-size: 24px;
+        line-height: 1;
+        cursor: pointer;
+        display: grid;
+        place-items: center;
+        transition: all 0.2s ease;
+      }
+      .ward-modal-close:hover {
+        background: rgba(255,255,255,0.1);
+        border-color: var(--accent);
+        transform: rotate(90deg);
+      }
+      .ward-modal-header {
+        margin-bottom: 24px;
+      }
+      .ward-modal-header h3 {
+        margin: 0 0 8px;
+        font-size: 28px;
+        font-weight: 700;
+        letter-spacing: -0.03em;
+      }
+      .ward-modal-header .ward-id-detail {
+        color: var(--muted);
+        font-size: 14px;
+      }
+      .ward-detail-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 16px;
+        margin-bottom: 24px;
+      }
+      .detail-param-card {
+        background: rgba(255,255,255,0.04);
+        border: 1px solid rgba(255,255,255,0.1);
+        border-radius: 12px;
+        padding: 16px;
+      }
+      .detail-param-label {
+        font-size: 12px;
+        color: var(--muted);
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        margin-bottom: 8px;
+        font-weight: 600;
+      }
+      .detail-param-value {
+        font-size: 24px;
+        font-weight: 700;
+        letter-spacing: -0.02em;
+      }
+      .ward-credentials-box {
+        background: rgba(255,255,255,0.04);
+        border: 1px solid rgba(255,255,255,0.1);
+        border-radius: 12px;
+        padding: 16px;
+        margin-top: 20px;
+      }
+      .credentials-title {
+        font-size: 14px;
+        font-weight: 600;
+        margin-bottom: 12px;
+        color: var(--text);
+      }
+      .credential-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 8px 0;
+        border-bottom: 1px solid rgba(255,255,255,0.05);
+      }
+      .credential-row:last-child {
+        border-bottom: none;
+      }
+      .credential-label {
+        font-size: 13px;
+        color: var(--muted);
+      }
+      .credential-value {
+        font-family: 'Courier New', monospace;
+        font-size: 13px;
+        color: var(--text);
+        font-weight: 600;
+      }
+
+      .dashboard-main {
+        max-width: 1600px;
+        margin: 0 auto;
+        padding: 24px;
+        display: grid;
+        gap: 24px;
+      }
+
+      /* KPIs Row */
+      .kpis-row {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 16px;
+      }
+      /* Nodes Bifurcation Section */
+      .nodes-bifurcation {
+        background: var(--card);
+        border: 1px solid var(--card-border);
+        border-radius: 16px;
+        padding: 20px;
+        backdrop-filter: blur(16px);
+        grid-column: 1 / -1;
+        margin-top: 16px;
+      }
+      .nodes-bifurcation-title {
+        font-size: 14px;
+        font-weight: 600;
+        color: var(--muted);
+        margin-bottom: 12px;
+        letter-spacing: 0.01em;
+      }
+      .nodes-list {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 12px;
+      }
+      .node-item {
+        background: rgba(255,255,255,0.04);
+        border: 1px solid rgba(255,255,255,0.1);
+        border-radius: 12px;
+        padding: 14px;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        transition: all 0.2s ease;
+      }
+      .node-item:hover {
+        background: rgba(255,255,255,0.06);
+        border-color: rgba(255,255,255,0.15);
+        transform: translateY(-2px);
+      }
+      .node-icon {
+        width: 36px;
+        height: 36px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 18px;
+        flex-shrink: 0;
+      }
+      .node-icon.aqi {
+        background: rgba(24,224,181,0.2);
+        color: #18e0b5;
+      }
+      .node-icon.dustbin {
+        background: rgba(67,255,136,0.2);
+        color: #43ff88;
+      }
+      .node-icon.water {
+        background: rgba(24,224,181,0.2);
+        color: #18e0b5;
+      }
+      .node-info {
+        flex: 1;
+        min-width: 0;
+      }
+      .node-type {
+        font-size: 13px;
+        font-weight: 600;
+        margin-bottom: 4px;
+        letter-spacing: -0.01em;
+      }
+      .node-location {
+        font-size: 11px;
+        color: var(--muted);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      /* Alert Logs Section */
+      .alert-logs-section {
+        background: var(--card);
+        border: 1px solid var(--card-border);
+        border-radius: 20px;
+        padding: 24px;
+        backdrop-filter: blur(16px);
+        margin-bottom: 24px;
+      }
+      .alert-logs-header {
+        margin-bottom: 20px;
+      }
+      .alert-logs-header h3 {
+        margin: 0 0 8px;
+        font-size: 20px;
+        font-weight: 700;
+        letter-spacing: -0.02em;
+      }
+      .alert-logs-header p {
+        margin: 0;
+        color: var(--muted);
+        font-size: 14px;
+      }
+      .alert-logs-list {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        max-height: 400px;
+        overflow-y: auto;
+      }
+      .alert-log-item {
+        background: rgba(255,255,255,0.04);
+        border: 1px solid rgba(255,255,255,0.1);
+        border-left: 3px solid;
+        border-radius: 12px;
+        padding: 16px;
+        display: flex;
+        align-items: flex-start;
+        gap: 16px;
+        transition: all 0.2s ease;
+      }
+      .alert-log-item:hover {
+        background: rgba(255,255,255,0.06);
+        border-color: rgba(255,255,255,0.15);
+        transform: translateX(4px);
+      }
+      .alert-log-item.critical {
+        border-left-color: var(--poor);
+      }
+      .alert-log-item.warning {
+        border-left-color: var(--moderate);
+      }
+      .alert-log-item.info {
+        border-left-color: var(--good);
+      }
+      .alert-log-icon {
+        width: 40px;
+        height: 40px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 20px;
+        flex-shrink: 0;
+      }
+      .alert-log-item.critical .alert-log-icon {
+        background: rgba(255,107,107,0.2);
+        color: var(--poor);
+      }
+      .alert-log-item.warning .alert-log-icon {
+        background: rgba(255,200,87,0.2);
+        color: var(--moderate);
+      }
+      .alert-log-item.info .alert-log-icon {
+        background: rgba(67,255,136,0.2);
+        color: var(--good);
+      }
+      .alert-log-content {
+        flex: 1;
+      }
+      .alert-log-title {
+        font-size: 15px;
+        font-weight: 600;
+        margin-bottom: 4px;
+        letter-spacing: -0.01em;
+      }
+      .alert-log-description {
+        font-size: 13px;
+        color: var(--muted);
+        margin-bottom: 8px;
+      }
+      .alert-log-meta {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        font-size: 12px;
+        color: var(--muted);
+      }
+      .alert-log-time {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+      .alert-log-location {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+      .alert-logs-list::-webkit-scrollbar {
+        width: 6px;
+      }
+      .alert-logs-list::-webkit-scrollbar-track {
+        background: rgba(255,255,255,0.05);
+        border-radius: 10px;
+      }
+      .alert-logs-list::-webkit-scrollbar-thumb {
+        background: rgba(255,255,255,0.2);
+        border-radius: 10px;
+      }
+      .alert-logs-list::-webkit-scrollbar-thumb:hover {
+        background: rgba(255,255,255,0.3);
+      }
+      /* AQI Alert Dialog - Modern Minimalist */
+      .aqi-alert-dialog {
+        position: fixed;
+        inset: 0;
+        z-index: 20000;
+        display: grid;
+        place-items: center;
+        opacity: 0;
+        visibility: hidden;
+        transition: opacity 0.4s cubic-bezier(0.4, 0, 0.2, 1), visibility 0.4s;
+        padding: 20px;
+      }
+      .aqi-alert-dialog.active {
+        opacity: 1;
+        visibility: visible;
+      }
+      .aqi-alert-overlay {
+        position: absolute;
+        inset: 0;
+        background: rgba(11, 18, 32, 0.75);
+        backdrop-filter: blur(12px);
+        opacity: 0;
+        transition: opacity 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+      }
+      .aqi-alert-dialog.active .aqi-alert-overlay {
+        opacity: 1;
+      }
+      .aqi-alert-content {
+        position: relative;
+        width: 100%;
+        max-width: 420px;
+        background: rgba(255, 255, 255, 0.03);
+        backdrop-filter: blur(20px) saturate(180%);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 24px;
+        padding: 40px 32px;
+        transform: translateY(30px) scale(0.95);
+        opacity: 0;
+        transition: transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(255, 255, 255, 0.05) inset;
+      }
+      .aqi-alert-dialog.active .aqi-alert-content {
+        transform: translateY(0) scale(1);
+        opacity: 1;
+      }
+      .aqi-alert-icon {
+        width: 72px;
+        height: 72px;
+        margin: 0 auto 24px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 36px;
+        background: linear-gradient(135deg, rgba(255, 107, 107, 0.15), rgba(255, 107, 107, 0.05));
+        border: 1px solid rgba(255, 107, 107, 0.2);
+        border-radius: 50%;
+        animation: iconPulse 2s ease-in-out infinite;
+        transform: scale(0);
+        transition: transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) 0.2s;
+      }
+      .aqi-alert-dialog.active .aqi-alert-icon {
+        transform: scale(1);
+      }
+      @keyframes iconPulse {
+        0%, 100% { 
+          box-shadow: 0 0 0 0 rgba(255, 107, 107, 0.4);
+          transform: scale(1);
+        }
+        50% { 
+          box-shadow: 0 0 0 12px rgba(255, 107, 107, 0);
+          transform: scale(1.05);
+        }
+      }
+      .aqi-alert-title {
+        font-size: 22px;
+        font-weight: 700;
+        color: var(--text);
+        text-align: center;
+        margin-bottom: 8px;
+        letter-spacing: -0.03em;
+        opacity: 0;
+        transform: translateY(10px);
+        transition: opacity 0.5s cubic-bezier(0.4, 0, 0.2, 1) 0.3s, transform 0.5s cubic-bezier(0.4, 0, 0.2, 1) 0.3s;
+      }
+      .aqi-alert-dialog.active .aqi-alert-title {
+        opacity: 1;
+        transform: translateY(0);
+      }
+      .aqi-alert-message {
+        font-size: 14px;
+        color: var(--muted);
+        text-align: center;
+        margin-bottom: 32px;
+        line-height: 1.6;
+        opacity: 0;
+        transform: translateY(10px);
+        transition: opacity 0.5s cubic-bezier(0.4, 0, 0.2, 1) 0.4s, transform 0.5s cubic-bezier(0.4, 0, 0.2, 1) 0.4s;
+      }
+      .aqi-alert-dialog.active .aqi-alert-message {
+        opacity: 1;
+        transform: translateY(0);
+      }
+      .aqi-alert-value {
+        font-size: 56px;
+        font-weight: 800;
+        color: var(--poor);
+        text-align: center;
+        margin-bottom: 36px;
+        letter-spacing: -0.04em;
+        background: linear-gradient(135deg, #ff6b6b, #ff5252);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        opacity: 0;
+        transform: scale(0.8);
+        transition: opacity 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) 0.5s, transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) 0.5s;
+      }
+      .aqi-alert-dialog.active .aqi-alert-value {
+        opacity: 1;
+        transform: scale(1);
+      }
+      .aqi-alert-buttons {
+        display: flex;
+        gap: 10px;
+        justify-content: center;
+        opacity: 0;
+        transform: translateY(10px);
+        transition: opacity 0.5s cubic-bezier(0.4, 0, 0.2, 1) 0.6s, transform 0.5s cubic-bezier(0.4, 0, 0.2, 1) 0.6s;
+      }
+      .aqi-alert-dialog.active .aqi-alert-buttons {
+        opacity: 1;
+        transform: translateY(0);
+      }
+      .aqi-alert-btn {
+        padding: 14px 28px;
+        border-radius: 12px;
+        font-size: 14px;
+        font-weight: 600;
+        font-family: 'Outfit', sans-serif;
+        cursor: pointer;
+        transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        border: none;
+        letter-spacing: 0.01em;
+        position: relative;
+        overflow: hidden;
+      }
+      .aqi-alert-btn::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background: rgba(255, 255, 255, 0.1);
+        opacity: 0;
+        transition: opacity 0.25s ease;
+      }
+      .aqi-alert-btn:hover::before {
+        opacity: 1;
+      }
+      .aqi-alert-btn-dismiss {
+        background: rgba(255, 255, 255, 0.05);
+        color: var(--text);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+      }
+      .aqi-alert-btn-dismiss:hover {
+        background: rgba(255, 255, 255, 0.08);
+        border-color: rgba(255, 255, 255, 0.15);
+        transform: translateY(-2px);
+      }
+      .aqi-alert-btn-dismiss:active {
+        transform: translateY(0);
+      }
+      .aqi-alert-btn-send {
+        background: linear-gradient(135deg, #ff6b6b, #ff5252);
+        color: #0b1220;
+        border: none;
+        box-shadow: 0 4px 12px rgba(255, 107, 107, 0.3);
+      }
+      .aqi-alert-btn-send:hover {
+        background: linear-gradient(135deg, #ff5252, #ff4444);
+        box-shadow: 0 6px 20px rgba(255, 107, 107, 0.4);
+        transform: translateY(-2px);
+      }
+      .aqi-alert-btn-send:active {
+        transform: translateY(0);
+        box-shadow: 0 2px 8px rgba(255, 107, 107, 0.3);
+      }
+      
+      /* Electricity Theft Alert Dialog - Similar to AQI Alert */
+      .theft-alert-dialog {
+        position: fixed;
+        inset: 0;
+        z-index: 20001;
+        display: grid;
+        place-items: center;
+        opacity: 0;
+        visibility: hidden;
+        transition: opacity 0.4s cubic-bezier(0.4, 0, 0.2, 1), visibility 0.4s;
+        padding: 20px;
+      }
+      .theft-alert-dialog.active {
+        opacity: 1;
+        visibility: visible;
+      }
+      .theft-alert-overlay {
+        position: absolute;
+        inset: 0;
+        background: rgba(11, 18, 32, 0.75);
+        backdrop-filter: blur(12px);
+        opacity: 0;
+        transition: opacity 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+      }
+      .theft-alert-dialog.active .theft-alert-overlay {
+        opacity: 1;
+      }
+      .theft-alert-content {
+        position: relative;
+        width: 100%;
+        max-width: 420px;
+        background: rgba(255, 255, 255, 0.03);
+        backdrop-filter: blur(20px) saturate(180%);
+        border: 1px solid rgba(255, 107, 107, 0.2);
+        border-radius: 24px;
+        padding: 40px 32px;
+        transform: translateY(30px) scale(0.95);
+        opacity: 0;
+        transition: transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+        box-shadow: 0 20px 60px rgba(255, 107, 107, 0.3), 0 0 0 1px rgba(255, 255, 255, 0.05) inset;
+      }
+      .theft-alert-dialog.active .theft-alert-content {
+        transform: translateY(0) scale(1);
+        opacity: 1;
+      }
+      .theft-alert-icon {
+        width: 72px;
+        height: 72px;
+        margin: 0 auto 24px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: linear-gradient(135deg, rgba(255, 107, 107, 0.2), rgba(255, 82, 82, 0.15));
+        border: 2px solid rgba(255, 107, 107, 0.4);
+        border-radius: 50%;
+        font-size: 36px;
+        transform: scale(0.8);
+        animation: iconPulse 2s ease-in-out infinite;
+      }
+      .theft-alert-dialog.active .theft-alert-icon {
+        transform: scale(1);
+      }
+      .theft-alert-title {
+        font-size: 22px;
+        font-weight: 700;
+        color: var(--text);
+        text-align: center;
+        margin-bottom: 8px;
+        opacity: 0;
+        transform: translateY(-10px);
+        transition: opacity 0.5s ease 0.2s, transform 0.5s ease 0.2s;
+      }
+      .theft-alert-dialog.active .theft-alert-title {
+        opacity: 1;
+        transform: translateY(0);
+      }
+      .theft-alert-message {
+        font-size: 14px;
+        color: var(--muted);
+        text-align: center;
+        margin-bottom: 32px;
+        line-height: 1.6;
+        opacity: 0;
+        transform: translateY(-10px);
+        transition: opacity 0.5s ease 0.3s, transform 0.5s ease 0.3s;
+      }
+      .theft-alert-dialog.active .theft-alert-message {
+        opacity: 1;
+        transform: translateY(0);
+      }
+      .theft-alert-buttons {
+        display: flex;
+        gap: 10px;
+        justify-content: center;
+        opacity: 0;
+        transform: translateY(10px);
+        transition: opacity 0.5s ease 0.4s, transform 0.5s ease 0.4s;
+      }
+      .theft-alert-dialog.active .theft-alert-buttons {
+        opacity: 1;
+        transform: translateY(0);
+      }
+      .theft-alert-btn {
+        padding: 14px 28px;
+        border-radius: 12px;
+        font-size: 14px;
+        font-weight: 600;
+        font-family: 'Outfit', sans-serif;
+        cursor: pointer;
+        transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        border: none;
+        letter-spacing: 0.01em;
+        position: relative;
+        overflow: hidden;
+      }
+      .theft-alert-btn-dismiss {
+        background: rgba(255, 255, 255, 0.05);
+        color: var(--text);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+      }
+      .theft-alert-btn-dismiss:hover {
+        background: rgba(255, 255, 255, 0.08);
+        border-color: rgba(255, 255, 255, 0.15);
+        transform: translateY(-2px);
+      }
+      .theft-alert-btn-send {
+        background: linear-gradient(135deg, #ff6b6b, #ff5252);
+        color: #0b1220;
+        border: none;
+        box-shadow: 0 4px 12px rgba(255, 107, 107, 0.3);
+      }
+      .theft-alert-btn-send:hover {
+        background: linear-gradient(135deg, #ff5252, #ff4444);
+        box-shadow: 0 6px 20px rgba(255, 107, 107, 0.4);
+        transform: translateY(-2px);
+      }
+      
+      /* TDS Alert Dialog - Similar to Theft Alert */
+      .tds-alert-dialog {
+        position: fixed;
+        inset: 0;
+        z-index: 20002; /* Higher z-index to appear above other alerts */
+        display: grid;
+        place-items: center;
+        opacity: 0;
+        visibility: hidden;
+        transition: opacity 0.4s cubic-bezier(0.4, 0, 0.2, 1), visibility 0.4s;
+        padding: 20px;
+      }
+      .tds-alert-dialog.active {
+        opacity: 1;
+        visibility: visible;
+      }
+      .tds-alert-overlay {
+        position: absolute;
+        inset: 0;
+        background: rgba(11, 18, 32, 0.75);
+        backdrop-filter: blur(12px);
+        opacity: 0;
+        transition: opacity 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+      }
+      .tds-alert-dialog.active .tds-alert-overlay {
+        opacity: 1;
+      }
+      .tds-alert-content {
+        position: relative;
+        width: 100%;
+        max-width: 420px;
+        background: rgba(255, 255, 255, 0.03);
+        backdrop-filter: blur(20px) saturate(180%);
+        border: 1px solid rgba(255, 200, 87, 0.2); /* Moderate color */
+        border-radius: 24px;
+        padding: 40px 32px;
+        transform: translateY(30px) scale(0.95);
+        opacity: 0;
+        transition: transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+        box-shadow: 0 20px 60px rgba(255, 200, 87, 0.3), 0 0 0 1px rgba(255, 255, 255, 0.05) inset;
+      }
+      .tds-alert-dialog.active .tds-alert-content {
+        transform: translateY(0) scale(1);
+        opacity: 1;
+      }
+      .tds-alert-icon {
+        width: 72px;
+        height: 72px;
+        margin: 0 auto 24px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: linear-gradient(135deg, rgba(255, 200, 87, 0.2), rgba(255, 180, 60, 0.15));
+        border: 2px solid rgba(255, 200, 87, 0.4);
+        border-radius: 50%;
+        font-size: 36px;
+        transform: scale(0.8);
+        animation: iconPulseTDS 2s ease-in-out infinite;
+      }
+      .tds-alert-dialog.active .tds-alert-icon {
+        transform: scale(1);
+      }
+      @keyframes iconPulseTDS {
+        0%, 100% { 
+          box-shadow: 0 0 0 0 rgba(255, 200, 87, 0.4);
+          transform: scale(1);
+        }
+        50% { 
+          box-shadow: 0 0 0 12px rgba(255, 200, 87, 0);
+          transform: scale(1.05);
+        }
+      }
+      .tds-alert-title {
+        font-size: 22px;
+        font-weight: 700;
+        color: var(--text);
+        text-align: center;
+        margin-bottom: 8px;
+        opacity: 0;
+        transform: translateY(-10px);
+        transition: opacity 0.5s ease 0.2s, transform 0.5s ease 0.2s;
+      }
+      .tds-alert-dialog.active .tds-alert-title {
+        opacity: 1;
+        transform: translateY(0);
+      }
+      .tds-alert-message {
+        font-size: 14px;
+        color: var(--muted);
+        text-align: center;
+        margin-bottom: 32px;
+        line-height: 1.6;
+        opacity: 0;
+        transform: translateY(-10px);
+        transition: opacity 0.5s ease 0.3s, transform 0.5s ease 0.3s;
+      }
+      .tds-alert-dialog.active .tds-alert-message {
+        opacity: 1;
+        transform: translateY(0);
+      }
+      .tds-alert-value {
+        font-size: 56px;
+        font-weight: 800;
+        color: var(--moderate); /* Use moderate color for TDS */
+        text-align: center;
+        margin-bottom: 36px;
+        opacity: 0;
+        transform: scale(0.8);
+        transition: opacity 0.5s ease 0.4s, transform 0.5s ease 0.4s;
+      }
+      .tds-alert-dialog.active .tds-alert-value {
+        opacity: 1;
+        transform: scale(1);
+      }
+      .tds-alert-buttons {
+        display: flex;
+        gap: 10px;
+        justify-content: center;
+        opacity: 0;
+        transform: translateY(10px);
+        transition: opacity 0.5s ease 0.4s, transform 0.5s ease 0.4s;
+      }
+      .tds-alert-dialog.active .tds-alert-buttons {
+        opacity: 1;
+        transform: translateY(0);
+      }
+      .tds-alert-btn {
+        padding: 14px 28px;
+        border-radius: 12px;
+        font-size: 14px;
+        font-weight: 600;
+        font-family: 'Outfit', sans-serif;
+        cursor: pointer;
+        transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        border: none;
+        letter-spacing: 0.01em;
+        position: relative;
+        overflow: hidden;
+      }
+      .tds-alert-btn-dismiss {
+        background: rgba(255, 255, 255, 0.05);
+        color: var(--text);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+      }
+      .tds-alert-btn-dismiss:hover {
+        background: rgba(255, 255, 255, 0.08);
+        border-color: rgba(255, 255, 255, 0.15);
+        transform: translateY(-2px);
+      }
+      .tds-alert-btn-send {
+        background: linear-gradient(135deg, #ffc857, #ffb03a); /* Moderate color gradient */
+        color: #0b1220;
+        border: none;
+        box-shadow: 0 4px 12px rgba(255, 200, 87, 0.3);
+      }
+      .tds-alert-btn-send:hover {
+        background: linear-gradient(135deg, #ffb03a, #ffa520);
+        box-shadow: 0 6px 20px rgba(255, 200, 87, 0.4);
+        transform: translateY(-2px);
+      }
+      
+      /* Dustbin Alert Dialog - Similar to TDS Alert */
+      .dustbin-alert-dialog {
+        position: fixed;
+        inset: 0;
+        z-index: 20003; /* Higher z-index to appear above other alerts */
+        display: grid;
+        place-items: center;
+        opacity: 0;
+        visibility: hidden;
+        transition: opacity 0.4s cubic-bezier(0.4, 0, 0.2, 1), visibility 0.4s;
+        padding: 20px;
+      }
+      .dustbin-alert-dialog.active {
+        opacity: 1;
+        visibility: visible;
+      }
+      .dustbin-alert-overlay {
+        position: absolute;
+        inset: 0;
+        background: rgba(11, 18, 32, 0.75);
+        backdrop-filter: blur(12px);
+        opacity: 0;
+        transition: opacity 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+      }
+      .dustbin-alert-dialog.active .dustbin-alert-overlay {
+        opacity: 1;
+      }
+      .dustbin-alert-content {
+        position: relative;
+        width: 100%;
+        max-width: 420px;
+        background: rgba(255, 255, 255, 0.03);
+        backdrop-filter: blur(20px) saturate(180%);
+        border: 1px solid rgba(255, 107, 107, 0.2); /* Red color for full dustbin */
+        border-radius: 24px;
+        padding: 40px 32px;
+        transform: translateY(30px) scale(0.95);
+        opacity: 0;
+        transition: transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+        box-shadow: 0 20px 60px rgba(255, 107, 107, 0.3), 0 0 0 1px rgba(255, 255, 255, 0.05) inset;
+      }
+      .dustbin-alert-dialog.active .dustbin-alert-content {
+        transform: translateY(0) scale(1);
+        opacity: 1;
+      }
+      .dustbin-alert-icon {
+        width: 72px;
+        height: 72px;
+        margin: 0 auto 24px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: linear-gradient(135deg, rgba(255, 107, 107, 0.2), rgba(255, 82, 82, 0.15));
+        border: 2px solid rgba(255, 107, 107, 0.4);
+        border-radius: 50%;
+        font-size: 36px;
+        transform: scale(0.8);
+        animation: iconPulseDustbin 2s ease-in-out infinite;
+      }
+      .dustbin-alert-dialog.active .dustbin-alert-icon {
+        transform: scale(1);
+      }
+      @keyframes iconPulseDustbin {
+        0%, 100% { 
+          box-shadow: 0 0 0 0 rgba(255, 107, 107, 0.4);
+          transform: scale(1);
+        }
+        50% { 
+          box-shadow: 0 0 0 12px rgba(255, 107, 107, 0);
+          transform: scale(1.05);
+        }
+      }
+      .dustbin-alert-title {
+        font-size: 22px;
+        font-weight: 700;
+        color: var(--text);
+        text-align: center;
+        margin-bottom: 8px;
+        opacity: 0;
+        transform: translateY(-10px);
+        transition: opacity 0.5s ease 0.2s, transform 0.5s ease 0.2s;
+      }
+      .dustbin-alert-dialog.active .dustbin-alert-title {
+        opacity: 1;
+        transform: translateY(0);
+      }
+      .dustbin-alert-message {
+        font-size: 14px;
+        color: var(--muted);
+        text-align: center;
+        margin-bottom: 32px;
+        line-height: 1.6;
+        opacity: 0;
+        transform: translateY(-10px);
+        transition: opacity 0.5s ease 0.3s, transform 0.5s ease 0.3s;
+      }
+      .dustbin-alert-dialog.active .dustbin-alert-message {
+        opacity: 1;
+        transform: translateY(0);
+      }
+      .dustbin-alert-value {
+        font-size: 56px;
+        font-weight: 800;
+        color: var(--poor); /* Red color for full dustbin */
+        text-align: center;
+        margin-bottom: 36px;
+        opacity: 0;
+        transform: scale(0.8);
+        transition: opacity 0.5s ease 0.4s, transform 0.5s ease 0.4s;
+      }
+      .dustbin-alert-dialog.active .dustbin-alert-value {
+        opacity: 1;
+        transform: scale(1);
+      }
+      .dustbin-alert-buttons {
+        display: flex;
+        gap: 10px;
+        justify-content: center;
+        opacity: 0;
+        transform: translateY(10px);
+        transition: opacity 0.5s ease 0.4s, transform 0.5s ease 0.4s;
+      }
+      .dustbin-alert-dialog.active .dustbin-alert-buttons {
+        opacity: 1;
+        transform: translateY(0);
+      }
+      .dustbin-alert-btn {
+        padding: 14px 28px;
+        border-radius: 12px;
+        font-size: 14px;
+        font-weight: 600;
+        font-family: 'Outfit', sans-serif;
+        cursor: pointer;
+        transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        border: none;
+        letter-spacing: 0.01em;
+        position: relative;
+        overflow: hidden;
+      }
+      .dustbin-alert-btn-dismiss {
+        background: rgba(255, 255, 255, 0.05);
+        color: var(--text);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+      }
+      .dustbin-alert-btn-dismiss:hover {
+        background: rgba(255, 255, 255, 0.08);
+        border-color: rgba(255, 255, 255, 0.15);
+        transform: translateY(-2px);
+      }
+      .dustbin-alert-btn-send {
+        background: linear-gradient(135deg, #ff6b6b, #ff5252);
+        color: #0b1220;
+        border: none;
+        box-shadow: 0 4px 12px rgba(255, 107, 107, 0.3);
+      }
+      .dustbin-alert-btn-send:hover {
+        background: linear-gradient(135deg, #ff5252, #ff4444);
+        box-shadow: 0 6px 20px rgba(255, 107, 107, 0.4);
+        transform: translateY(-2px);
+      }
+      
+      /* Ward Selection Dialog */
+      .ward-selection-dialog {
+        position: fixed;
+        inset: 0;
+        z-index: 15000;
+        display: grid;
+        place-items: center;
+        opacity: 0;
+        visibility: hidden;
+        transition: opacity 0.4s cubic-bezier(0.4, 0, 0.2, 1), visibility 0.4s;
+        padding: 20px;
+      }
+      .ward-selection-dialog.active {
+        opacity: 1;
+        visibility: visible;
+      }
+      .ward-selection-overlay {
+        position: absolute;
+        inset: 0;
+        background: rgba(11, 18, 32, 0.75);
+        backdrop-filter: blur(12px);
+        opacity: 0;
+        transition: opacity 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+      }
+      .ward-selection-dialog.active .ward-selection-overlay {
+        opacity: 1;
+      }
+      .ward-selection-content {
+        position: relative;
+        width: 100%;
+        max-width: 500px;
+        max-height: 80vh;
+        background: rgba(255, 255, 255, 0.03);
+        backdrop-filter: blur(20px) saturate(180%);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 24px;
+        padding: 32px;
+        transform: translateY(30px) scale(0.95);
+        opacity: 0;
+        transition: transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(255, 255, 255, 0.05) inset;
+        display: flex;
+        flex-direction: column;
+      }
+      .ward-selection-dialog.active .ward-selection-content {
+        transform: translateY(0) scale(1);
+        opacity: 1;
+      }
+      .ward-selection-header {
+        margin-bottom: 24px;
+      }
+      .ward-selection-title {
+        font-size: 24px;
+        font-weight: 700;
+        color: var(--text);
+        margin-bottom: 8px;
+        letter-spacing: -0.02em;
+      }
+      .ward-selection-subtitle {
+        font-size: 14px;
+        color: var(--muted);
+        line-height: 1.5;
+      }
+      .ward-selection-list {
+        flex: 1;
+        overflow-y: auto;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        margin-bottom: 24px;
+        padding-right: 8px;
+      }
+      .ward-selection-list::-webkit-scrollbar {
+        width: 6px;
+      }
+      .ward-selection-list::-webkit-scrollbar-track {
+        background: rgba(255,255,255,0.05);
+        border-radius: 10px;
+      }
+      .ward-selection-list::-webkit-scrollbar-thumb {
+        background: rgba(255,255,255,0.2);
+        border-radius: 10px;
+      }
+      .ward-selection-item {
+        padding: 14px 16px;
+        background: rgba(255, 255, 255, 0.04);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 12px;
+        cursor: pointer;
+        transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+      .ward-selection-item:hover {
+        background: rgba(255, 255, 255, 0.06);
+        border-color: rgba(255, 255, 255, 0.12);
+        transform: translateX(4px);
+      }
+      .ward-selection-item-name {
+        font-size: 15px;
+        font-weight: 600;
+        color: var(--text);
+        letter-spacing: -0.01em;
+      }
+      .ward-selection-item-status {
+        font-size: 11px;
+        font-weight: 700;
+        padding: 4px 10px;
+        border-radius: 999px;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+      }
+      .ward-selection-item.good .ward-selection-item-status {
+        background: rgba(67,255,136,0.2);
+        color: var(--good);
+        border: 1px solid rgba(67,255,136,0.4);
+      }
+      .ward-selection-item.moderate .ward-selection-item-status {
+        background: rgba(255,200,87,0.2);
+        color: var(--moderate);
+        border: 1px solid rgba(255,200,87,0.4);
+      }
+      .ward-selection-item.poor .ward-selection-item-status {
+        background: rgba(255,107,107,0.2);
+        color: var(--poor);
+        border: 1px solid rgba(255,107,107,0.4);
+      }
+      .ward-selection-actions {
+        display: flex;
+        gap: 10px;
+        justify-content: flex-end;
+      }
+      .ward-selection-btn {
+        padding: 12px 24px;
+        border-radius: 12px;
+        font-size: 14px;
+        font-weight: 600;
+        font-family: 'Outfit', sans-serif;
+        cursor: pointer;
+        transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        border: none;
+        letter-spacing: 0.01em;
+      }
+      .ward-selection-btn-cancel {
+        background: rgba(255, 255, 255, 0.05);
+        color: var(--text);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+      }
+      .ward-selection-btn-cancel:hover {
+        background: rgba(255, 255, 255, 0.08);
+        border-color: rgba(255, 255, 255, 0.15);
+      }
+      .kpi-card {
+        background: var(--card);
+        border: 1px solid var(--card-border);
+        border-radius: 16px;
+        padding: 20px;
+        backdrop-filter: blur(16px);
+      }
+      .kpi-label {
+        font-size: 13px;
+        color: var(--muted);
+        font-weight: 500;
+        margin-bottom: 8px;
+      }
+      .kpi-value {
+        font-size: 32px;
+        font-weight: 700;
+        letter-spacing: -0.03em;
+        margin: 0;
+      }
+      .kpi-value.good { color: var(--good); }
+      .kpi-value.moderate { color: var(--moderate); }
+      .kpi-value.poor { color: var(--poor); }
+
+      /* Graph Tiles Section */
+      .graph-tiles-row {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 20px;
+      }
+      .graph-card {
+        background: var(--card);
+        border: 1px solid var(--card-border);
+        border-radius: 16px;
+        padding: 20px;
+        backdrop-filter: blur(16px);
+        position: relative;
+        overflow: hidden;
+      }
+      .graph-card-header {
+        margin-bottom: 16px;
+      }
+      .graph-card-title {
+        font-size: 14px;
+        color: var(--muted);
+        font-weight: 600;
+        margin-bottom: 4px;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+      }
+      .graph-card-value {
+        font-size: 24px;
+        font-weight: 700;
+        letter-spacing: -0.02em;
+      }
+      .graph-card canvas {
+        width: 100%;
+        height: 140px;
+        display: block;
+      }
+      @media (max-width: 1200px) {
+        .graph-tiles-row {
+          grid-template-columns: repeat(2, 1fr);
+        }
+      }
+      @media (max-width: 768px) {
+        .graph-tiles-row {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      /* Map Section */
+      .map-section {
+        background: var(--card);
+        border: 1px solid var(--card-border);
+        border-radius: 20px;
+        padding: 20px;
+        backdrop-filter: blur(16px);
+        position: relative;
+        overflow: hidden;
+      }
+      .map-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 16px;
+      }
+      .map-header h2 {
+        margin: 0;
+        font-size: 22px;
+        font-weight: 700;
+        letter-spacing: -0.02em;
+      }
+      .map-section {
+        display: grid;
+        grid-template-columns: 1fr 380px;
+        gap: 20px;
+        align-items: start;
+      }
+      .map-container {
+        position: relative;
+        width: 100%;
+        height: 600px;
+        border-radius: 14px;
+        overflow: hidden;
+        background: #0b1220;
+      }
+      #city-map {
+        width: 100%;
+        height: 100%;
+        border-radius: 14px;
+      }
+      .sensor-side-panel {
+        background: var(--card);
+        border: 1px solid var(--card-border);
+        border-radius: 20px;
+        padding: 24px;
+        backdrop-filter: blur(16px);
+        display: none;
+        position: sticky;
+        top: 20px;
+        max-height: calc(100vh - 40px);
+        overflow-y: auto;
+      }
+      .sensor-side-panel.active {
+        display: block;
+      }
+      .sensor-panel-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+        padding-bottom: 16px;
+        border-bottom: 1px solid var(--card-border);
+      }
+      .sensor-panel-title {
+        font-size: 18px;
+        font-weight: 700;
+        letter-spacing: -0.02em;
+      }
+      .sensor-panel-close {
+        background: transparent;
+        border: none;
+        color: var(--muted);
+        font-size: 24px;
+        cursor: pointer;
+        padding: 0;
+        width: 32px;
+        height: 32px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 8px;
+        transition: all 0.2s ease;
+      }
+      .sensor-panel-close:hover {
+        background: rgba(255,255,255,0.1);
+        color: var(--text);
+      }
+      .sensor-info-card {
+        background: rgba(255,255,255,0.04);
+        border: 1px solid var(--card-border);
+        border-radius: 12px;
+        padding: 16px;
+        margin-bottom: 16px;
+      }
+      .sensor-info-label {
+        font-size: 12px;
+        color: var(--muted);
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        margin-bottom: 8px;
+      }
+      .sensor-info-value {
+        font-size: 20px;
+        font-weight: 700;
+        color: var(--text);
+      }
+      .sensor-info-value.good {
+        color: var(--good);
+      }
+      .sensor-info-value.moderate {
+        color: var(--moderate);
+      }
+      .sensor-info-value.poor {
+        color: var(--poor);
+      }
+      .charging-status {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+      .charging-indicator {
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        background: var(--good);
+        box-shadow: 0 0 8px rgba(67,255,136,0.5);
+        animation: pulse 2s ease-in-out infinite;
+      }
+      .charging-indicator.charging {
+        background: var(--good);
+      }
+      .charging-indicator.low {
+        background: var(--moderate);
+      }
+      .charging-indicator.critical {
+        background: var(--poor);
+      }
+      @keyframes pulse {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.5; }
+      }
+      @media (max-width: 1024px) {
+        .map-section {
+          grid-template-columns: 1fr;
+        }
+        .sensor-side-panel {
+          position: relative;
+          top: 0;
+        }
+      }
+      /* Custom Leaflet styles */
+      .leaflet-container {
+        background: #0b1220 !important;
+        font-family: 'Outfit', sans-serif;
+      }
+      .leaflet-tile-pane {
+        opacity: 0.8;
+      }
+      .leaflet-control {
+        background: rgba(9, 14, 26, 0.9) !important;
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255,255,255,0.1) !important;
+        border-radius: 10px;
+      }
+      .leaflet-control-zoom a {
+        background: rgba(255,255,255,0.05) !important;
+        color: var(--text) !important;
+        border: 1px solid rgba(255,255,255,0.1) !important;
+      }
+      .leaflet-control-zoom a:hover {
+        background: rgba(24,224,181,0.2) !important;
+        border-color: var(--accent) !important;
+      }
+      .leaflet-popup-content-wrapper {
+        background: rgba(9, 14, 26, 0.95) !important;
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255,255,255,0.1);
+        border-radius: 12px;
+        color: var(--text) !important;
+      }
+      .leaflet-popup-tip {
+        background: rgba(9, 14, 26, 0.95) !important;
+      }
+
+      /* Alert Ticker */
+      .alert-ticker {
+        background: rgba(255,107,107,0.1);
+        border: 1px solid rgba(255,107,107,0.3);
+        border-radius: 14px;
+        padding: 16px 20px;
+        overflow: hidden;
+        position: relative;
+      }
+      .alert-label {
+        font-size: 12px;
+        font-weight: 700;
+        color: var(--poor);
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+        margin-bottom: 8px;
+      }
+      .alert-scroll {
+        display: flex;
+        gap: 24px;
+        animation: scroll-alerts 30s linear infinite;
+      }
+      .alert-item {
+        flex-shrink: 0;
+        font-size: 14px;
+        color: var(--text);
+        white-space: nowrap;
+      }
+      .alert-item::before {
+        content: "⚠";
+        margin-right: 8px;
+        color: var(--poor);
+      }
+
+      @keyframes scroll-alerts {
+        0% { transform: translateX(0); }
+        100% { transform: translateX(-50%); }
+      }
+
+      @media (max-width: 768px) {
+        .dashboard-main { padding: 16px; }
+        .map-container { height: 400px; }
+        .kpis-row { grid-template-columns: 1fr; }
+      }
+    </style>
+  </head>
+  <body>
+    <header class="dashboard-header">
+      <div class="header-inner">
+        <h1 class="header-title">Municipal Dashboard</h1>
+        <div class="header-actions">
+          <a href="municipal-login.html" class="btn-outline">Logout</a>
+        </div>
+      </div>
+    </header>
+
+    <main class="dashboard-main">
+      <!-- KPIs -->
+      <div class="kpis-row">
+        <div class="kpi-card">
+          <div class="kpi-label">Average City AQI</div>
+          <p class="kpi-value good">28</p>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">Active Nodes</div>
+          <p class="kpi-value">3</p>
+        </div>
+        
+        <!-- Nodes Bifurcation -->
+        <div class="nodes-bifurcation">
+          <div class="nodes-bifurcation-title">All Active Nodes Breakdown</div>
+          <div class="nodes-list" id="nodes-list">
+            <!-- Nodes will be populated by JavaScript -->
+          </div>
+        </div>
+      </div>
+
+      <!-- Graph Tiles -->
+      <div class="graph-tiles-row">
+        <div class="graph-card">
+          <div class="graph-card-header">
+            <div class="graph-card-title">AQI Trend (7 Days)</div>
+            <div class="graph-card-value" style="color: var(--good);">28</div>
+          </div>
+          <canvas id="aqi-trend-chart"></canvas>
+        </div>
+        <div class="graph-card">
+          <div class="graph-card-header">
+            <div class="graph-card-title">Active Nodes</div>
+            <div class="graph-card-value">3</div>
+          </div>
+          <canvas id="nodes-chart"></canvas>
+        </div>
+      </div>
+
+      <!-- Map Section -->
+      <section class="map-section">
+        <div>
+          <div class="map-header">
+            <h2>City Digital Twin — Live Map</h2>
+          </div>
+          <div class="map-container">
+            <div id="city-map"></div>
+          </div>
+        </div>
+        <!-- Sensor Side Panel -->
+        <div id="sensor-side-panel" class="sensor-side-panel">
+          <div class="sensor-panel-header">
+            <h3 class="sensor-panel-title">Sensor Details</h3>
+            <button class="sensor-panel-close" id="sensor-panel-close">&times;</button>
+          </div>
+          <div id="sensor-panel-content">
+            <!-- Content will be populated by JavaScript -->
+          </div>
+        </div>
+      </section>
+
+      <!-- Alert Logs Section -->
+      <div class="alert-logs-section">
+        <div class="alert-logs-header">
+          <h3>Alert Logs</h3>
+          <p>Real-time alerts and notifications from IoT sensors across the city</p>
+        </div>
+        <div class="alert-logs-list" id="alert-logs-list">
+          <!-- Alert logs will be populated by JavaScript -->
+        </div>
+      </div>
+
+      <!-- Cleanliness Leaderboard Section -->
+      <section class="leaderboard-section">
+        <div class="leaderboard-header-main">
+          <h2>🏆 Cleanliness Leaderboard</h2>
+          <p>Rankings based on drone inspection scores</p>
+        </div>
+        <div class="leaderboard-tabs-main">
+          <button class="leaderboard-tab-main active" data-tab="wards">Wards</button>
+          <button class="leaderboard-tab-main" data-tab="commercial">Commercial Lands</button>
+        </div>
+        <div class="leaderboard-content-main" id="leaderboard-content-main">
+          <!-- Leaderboard will be populated by JavaScript -->
+        </div>
+      </section>
+
+      <!-- Top 10 Wards Tiles -->
+      <section class="wards-tiles-section">
+        <div class="tiles-header">
+          <h2>Top Performing Wards</h2>
+          <p>Click on any ward tile to view detailed analytics and credentials</p>
+        </div>
+        <div class="wards-grid" id="wards-grid">
+          <!-- Wards tiles will be populated by JavaScript -->
+        </div>
+        <button class="load-more-btn" id="load-more-btn">Load More (5 wards)</button>
+      </section>
+
+      <!-- Top Performing Commercial Land -->
+      <section class="wards-tiles-section">
+        <div class="tiles-header">
+          <h2>Top Performing Commercial Land</h2>
+          <p>Click on any commercial land tile to view detailed analytics</p>
+        </div>
+        <div class="wards-grid" id="commercial-land-grid">
+          <!-- Commercial land tiles will be populated by JavaScript -->
+        </div>
+        <button class="load-more-btn" id="load-more-commercial-btn">Load More (5 plots)</button>
+      </section>
+
+      <!-- Ward Detail Modal -->
+      <div id="ward-detail-modal" class="ward-detail-modal" aria-hidden="true">
+        <div class="ward-modal-overlay"></div>
+        <div class="ward-modal-content">
+          <button class="ward-modal-close" aria-label="Close">&times;</button>
+          <div id="ward-detail-content">
+            <!-- Content will be populated by JavaScript -->
+          </div>
+        </div>
+      </div>
+
+    </main>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+    <script>
+      // Firebase Configuration
+      const firebaseConfig = {
+        apiKey: "AIzaSyA27lgwgBhByNuye_b5hVOZTeK7IjLLbis",
+        databaseURL: "https://saarthi-84622-default-rtdb.asia-southeast1.firebasedatabase.app/",
+        authDomain: "saarthi-84622.firebaseapp.com"
+      };
+      
+      // Initialize Firebase
+      firebase.initializeApp(firebaseConfig);
+      const database = firebase.database();
+      const auth = firebase.auth();
+      
+      // Store for Raj Nagar AQI history (last 7 values for graph)
+      let rajNagarAQIHistory = [];
+      const MAX_HISTORY = 7;
+      let lastAQIAlertTriggered = false; // Track if alert was already shown for current threshold
+      let lastAQIAlertValue = 0; // Track last AQI value that triggered alert
+      let lastTheftAlertTriggered = false; // Track if electricity theft alert was already shown
+      let lastTDSAlertTriggered = false; // Track if TDS alert was already shown
+      let lastTDSAlertValue = 0; // Track last TDS value that triggered alert
+      let lastDustbinAlertTriggered = false; // Track if dustbin alert was already shown
+      let lastDustbinAlertValue = 0; // Track last dustbin value that triggered alert
+      
+      // Authenticate and listen to AQI updates
+      function initializeFirebaseAQI() {
+        auth.signInWithEmailAndPassword("naman.saarthi@gmail.com", "12345678")
+          .then(() => {
+            console.log("Firebase authenticated successfully");
+            
+            // Get initial value first
+            database.ref('/aqi').once('value').then((snapshot) => {
+              const aqiValue = snapshot.val();
+              if (aqiValue !== null && !isNaN(aqiValue)) {
+                // Initialize history with current value
+                const initialAQI = parseFloat(aqiValue);
+                rajNagarAQIHistory = Array(7).fill(Math.round(initialAQI));
+                updateRajNagarAQI(initialAQI);
+              }
+            });
+            
+            // Listen to /aqi endpoint for real-time updates
+            database.ref('/aqi').on('value', (snapshot) => {
+              const aqiValue = snapshot.val();
+              if (aqiValue !== null && !isNaN(aqiValue)) {
+                updateRajNagarAQI(parseFloat(aqiValue));
+              }
+            }, (error) => {
+              console.error("Firebase AQI listener error:", error);
+            });
+          })
+          .catch((error) => {
+            console.error("Firebase authentication error:", error);
+          });
+      }
+      
+      // Update Raj Nagar AQI in real-time
+      function updateRajNagarAQI(newAQI) {
+        // Find Raj Nagar in allWardsData
+        const rajNagar = allWardsData.find(w => w.id === 84 && w.name === 'Raj Nagar');
+        if (rajNagar) {
+          const roundedAQI = Math.round(newAQI);
+          
+          // Check for critical AQI alert (>= 200)
+          if (roundedAQI >= 200 && (!lastAQIAlertTriggered || roundedAQI !== lastAQIAlertValue)) {
+            showAQIAlertDialog(roundedAQI);
+            addAQIAlertToLogs(roundedAQI);
+            lastAQIAlertTriggered = true;
+            lastAQIAlertValue = roundedAQI;
+          } else if (roundedAQI < 200) {
+            // Reset alert trigger when AQI drops below threshold
+            lastAQIAlertTriggered = false;
+            lastAQIAlertValue = 0;
+          }
+          
+          // Update the AQI value
+          rajNagar.aqi = roundedAQI;
+          
+          // Update status based on new AQI
+          if (newAQI <= 30) {
+            rajNagar.status = 'good';
+          } else if (newAQI <= 60) {
+            rajNagar.status = 'moderate';
+          } else {
+            rajNagar.status = 'poor';
+          }
+          
+          // Add to history for graph
+          rajNagarAQIHistory.push(roundedAQI);
+          if (rajNagarAQIHistory.length > MAX_HISTORY) {
+            rajNagarAQIHistory.shift(); // Remove oldest
+          }
+          
+          // Update the tile if it's currently displayed
+          updateRajNagarTile();
+          
+          // Update graph if modal is open
+          updateRajNagarGraph();
+        }
+      }
+      
+      // Show AQI Alert Dialog
+      function showAQIAlertDialog(aqiValue) {
+        // Play alert sound
+        playAlertSound();
+        
+        // Create or get alert dialog
+        let alertDialog = document.getElementById('aqi-alert-dialog');
+        if (!alertDialog) {
+          alertDialog = document.createElement('div');
+          alertDialog.id = 'aqi-alert-dialog';
+          alertDialog.className = 'aqi-alert-dialog';
+          alertDialog.innerHTML = `
+            <div class="aqi-alert-overlay"></div>
+            <div class="aqi-alert-content">
+              <div class="aqi-alert-icon">⚠</div>
+              <div class="aqi-alert-title">Critical AQI Alert</div>
+              <div class="aqi-alert-message">
+                Air quality has reached hazardous levels in Raj Nagar ward. Immediate action required.
+              </div>
+              <div class="aqi-alert-value">${aqiValue}</div>
+              <div class="aqi-alert-buttons">
+                <button class="aqi-alert-btn aqi-alert-btn-dismiss" id="aqi-alert-dismiss">Dismiss</button>
+                <button class="aqi-alert-btn aqi-alert-btn-send" id="aqi-alert-send">Notify Ward</button>
+              </div>
+            </div>
+          `;
+          document.body.appendChild(alertDialog);
+          
+          // Add event listeners
+          document.getElementById('aqi-alert-dismiss').addEventListener('click', () => {
+            closeAQIAlertDialog();
+          });
+          
+          document.getElementById('aqi-alert-send').addEventListener('click', () => {
+            sendMessageToWard(aqiValue);
+            closeAQIAlertDialog();
+          });
+          
+          document.querySelector('.aqi-alert-overlay').addEventListener('click', () => {
+            closeAQIAlertDialog();
+          });
+          
+          // Close on Escape key
+          const escapeHandler = (e) => {
+            if (e.key === 'Escape' && alertDialog.classList.contains('active')) {
+              closeAQIAlertDialog();
+              document.removeEventListener('keydown', escapeHandler);
+            }
+          };
+          document.addEventListener('keydown', escapeHandler);
+        } else {
+          // Update existing dialog
+          const valueElement = alertDialog.querySelector('.aqi-alert-value');
+          if (valueElement) {
+            valueElement.textContent = aqiValue;
+          }
+        }
+        
+        // Show dialog
+        alertDialog.classList.add('active');
+        document.body.style.overflow = 'hidden';
+      }
+      
+      // Close AQI Alert Dialog
+      function closeAQIAlertDialog() {
+        const alertDialog = document.getElementById('aqi-alert-dialog');
+        if (alertDialog) {
+          alertDialog.classList.remove('active');
+          document.body.style.overflow = '';
+        }
+      }
+      
+      // Play Alert Sound - Siren MP3 for 3 seconds
+      function playAlertSound() {
+        // Create audio element for siren alert sound
+        const audio = new Audio('assets/siren-alert-96052.mp3');
+        audio.volume = 0.7; // Set volume to 70%
+        audio.loop = false; // Don't loop
+        
+        // Play the sound
+        audio.play().catch((error) => {
+          console.error("Error playing alert sound:", error);
+          // Fallback to Web Audio API if MP3 fails
+          const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+          const oscillator = audioContext.createOscillator();
+          const gainNode = audioContext.createGain();
+          
+          oscillator.connect(gainNode);
+          gainNode.connect(audioContext.destination);
+          
+          oscillator.frequency.setValueAtTime(800, audioContext.currentTime);
+          oscillator.frequency.setValueAtTime(600, audioContext.currentTime + 0.1);
+          oscillator.frequency.setValueAtTime(800, audioContext.currentTime + 0.2);
+          
+          gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+          gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
+          
+          oscillator.start(audioContext.currentTime);
+          oscillator.stop(audioContext.currentTime + 0.3);
+        });
+        
+        // Stop after 3 seconds
+        setTimeout(() => {
+          audio.pause();
+          audio.currentTime = 0;
+        }, 3000);
+      }
+      
+      // Send Message to Ward
+      function sendMessageToWard(aqiValue) {
+        // You can implement actual messaging functionality here
+        // For now, show a confirmation
+        alert(`✅ Message sent to Raj Nagar ward officials\n\nAlert: Critical AQI level detected (${aqiValue})\n\nUrgent action required to address air quality issues.`);
+        
+        // Here you could add Firebase write to send notification
+        // or API call to messaging service
+        console.log(`Message sent to Raj Nagar ward for AQI: ${aqiValue}`);
+      }
+      
+      // Add AQI Alert to Alert Logs
+      function addAQIAlertToLogs(aqiValue) {
+        const now = new Date();
+        const timeAgo = 'Just now';
+        
+        const newAlert = {
+          id: alertIdCounter++,
+          type: 'critical',
+          icon: '🚨',
+          title: 'Critical AQI Alert - Hazardous Levels',
+          description: `Air Quality Index has reached dangerous level of ${aqiValue} in Raj Nagar ward. Immediate action required.`,
+          location: 'Raj Nagar',
+          time: timeAgo,
+          value: `AQI: ${aqiValue} µg/m³`
+        };
+        
+        // Add to beginning of array
+        alertLogs.unshift(newAlert);
+        
+        // Limit to 50 alerts max
+        if (alertLogs.length > 50) {
+          alertLogs.pop();
+        }
+        
+        // Update alert logs display
+        populateAlertLogs();
+      }
+      
+      // Update Raj Nagar tile in the DOM
+      function updateRajNagarTile() {
+        const rajNagar = allWardsData.find(w => w.id === 84 && w.name === 'Raj Nagar');
+        if (!rajNagar) return;
+        
+        const tile = document.querySelector(`.ward-tile[data-ward-id="84"]`);
+        if (tile) {
+          // Update AQI value in tile - find the AQI param row
+          const paramRows = tile.querySelectorAll('.param-row');
+          paramRows.forEach(row => {
+            const label = row.querySelector('.param-label');
+            if (label && label.textContent.includes('AQI')) {
+              const valueElement = row.querySelector('.param-value');
+              if (valueElement) {
+                valueElement.textContent = rajNagar.aqi;
+                // Update AQI class
+                const aqiClass = rajNagar.aqi <= 30 ? 'good' : rajNagar.aqi <= 60 ? 'moderate' : 'poor';
+                valueElement.className = `param-value ${aqiClass}`;
+              }
+            }
+          });
+          
+          // Update status badge
+          const statusBadge = tile.querySelector('.ward-status-badge');
+          if (statusBadge) {
+            statusBadge.textContent = rajNagar.status;
+          }
+          
+          // Update tile class
+          tile.className = `ward-tile ${rajNagar.status}`;
+        }
+      }
+      
+      // Update Raj Nagar graph if modal is open
+      function updateRajNagarGraph() {
+        const modal = document.getElementById('ward-detail-modal');
+        if (!modal || !modal.classList.contains('active')) return;
+        
+        const modalContent = document.getElementById('ward-detail-content');
+        if (!modalContent) return;
+        
+        const header = modalContent.querySelector('.ward-modal-header h3');
+        if (!header || header.textContent !== 'Raj Nagar') return;
+        
+        const rajNagar = allWardsData.find(w => w.id === 84 && w.name === 'Raj Nagar');
+        if (!rajNagar) return;
+        
+        // Update AQI chart
+        const aqiCanvas = document.getElementById('ward-aqi-chart');
+        if (aqiCanvas && rajNagarAQIHistory.length > 0) {
+          // Use history if available, otherwise generate trend
+          const aqiTrend = rajNagarAQIHistory.length >= 7 
+            ? [...rajNagarAQIHistory]
+            : [...rajNagarAQIHistory, ...Array(7 - rajNagarAQIHistory.length).fill(rajNagar.aqi)];
+          aqiCanvas.width = aqiCanvas.offsetWidth || 240;
+          drawLineChart(aqiCanvas, aqiTrend, '#ff6b6b', 'rgba(255,107,107,0.1)');
+        }
+        
+        // Update AQI value in detail modal
+        const detailCards = modalContent.querySelectorAll('.detail-param-card');
+        detailCards.forEach(card => {
+          const label = card.querySelector('.detail-param-label');
+          if (label && label.textContent.includes('AQI')) {
+            const valueElement = card.querySelector('.detail-param-value');
+            if (valueElement) {
+              const aqiClass = rajNagar.aqi <= 30 ? 'good' : rajNagar.aqi <= 60 ? 'moderate' : 'poor';
+              valueElement.textContent = `${rajNagar.aqi} µg/m³`;
+              valueElement.className = `detail-param-value ${aqiClass}`;
+            }
+          }
+        });
+        
+        // Update water quality and cleanliness based on new AQI
+        const waterQuality = Math.max(0, Math.min(100, 100 - rajNagar.aqi + Math.round((rajNagar.cleanliness - 50) / 2)));
+        const waterClass = waterQuality >= 80 ? 'good' : waterQuality >= 60 ? 'moderate' : 'poor';
+        
+        detailCards.forEach(card => {
+          const label = card.querySelector('.detail-param-label');
+          if (label && label.textContent.includes('Water Quality')) {
+            const valueElement = card.querySelector('.detail-param-value');
+            if (valueElement) {
+              valueElement.textContent = waterQuality;
+              valueElement.className = `detail-param-value ${waterClass}`;
+            }
+          }
+        });
+        
+        // Update water quality chart
+        const waterCanvas = document.getElementById('ward-water-chart');
+        if (waterCanvas && rajNagarAQIHistory.length > 0) {
+          const waterTrend = rajNagarAQIHistory.map(v => Math.max(0, Math.min(100, 100 - v + Math.round((rajNagar.cleanliness - 50) / 2))));
+          const fullWaterTrend = waterTrend.length >= 7 
+            ? [...waterTrend]
+            : [...waterTrend, ...Array(7 - waterTrend.length).fill(waterQuality)];
+          waterCanvas.width = waterCanvas.offsetWidth || 240;
+          drawLineChart(waterCanvas, fullWaterTrend, '#18e0b5', 'rgba(24,224,181,0.1)');
+        }
+      }
+    </script>
+    <script>
+      // Draw graphs function
+      function drawLineChart(canvas, data, color, fillColor = null) {
+        const ctx = canvas.getContext('2d');
+        const width = canvas.width;
+        const height = canvas.height;
+        const padding = 20;
+        const chartWidth = width - padding * 2;
+        const chartHeight = height - padding * 2;
+        
+        ctx.clearRect(0, 0, width, height);
+        
+        const maxValue = Math.max(...data);
+        const minValue = Math.min(...data);
+        const range = maxValue - minValue || 1;
+        
+        // Draw grid lines
+        ctx.strokeStyle = 'rgba(255,255,255,0.05)';
+        ctx.lineWidth = 1;
+        for (let i = 0; i <= 4; i++) {
+          const y = padding + (chartHeight / 4) * i;
+          ctx.beginPath();
+          ctx.moveTo(padding, y);
+          ctx.lineTo(width - padding, y);
+          ctx.stroke();
+        }
+        
+        // Draw line
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        
+        data.forEach((value, index) => {
+          const x = padding + (chartWidth / (data.length - 1)) * index;
+          const y = padding + chartHeight - ((value - minValue) / range) * chartHeight;
+          
+          if (index === 0) {
+            ctx.moveTo(x, y);
+          } else {
+            ctx.lineTo(x, y);
+          }
+        });
+        ctx.stroke();
+        
+        // Fill area if fillColor provided
+        if (fillColor) {
+          ctx.fillStyle = fillColor;
+          ctx.lineTo(width - padding, padding + chartHeight);
+          ctx.lineTo(padding, padding + chartHeight);
+          ctx.closePath();
+          ctx.fill();
+        }
+        
+        // Draw points
+        ctx.fillStyle = color;
+        data.forEach((value, index) => {
+          const x = padding + (chartWidth / (data.length - 1)) * index;
+          const y = padding + chartHeight - ((value - minValue) / range) * chartHeight;
+          ctx.beginPath();
+          ctx.arc(x, y, 3, 0, Math.PI * 2);
+          ctx.fill();
+        });
+      }
+      
+      function drawBarChart(canvas, data, color) {
+        const ctx = canvas.getContext('2d');
+        const width = canvas.width;
+        const height = canvas.height;
+        const padding = 20;
+        const chartWidth = width - padding * 2;
+        const chartHeight = height - padding * 2;
+        
+        ctx.clearRect(0, 0, width, height);
+        
+        const maxValue = Math.max(...data);
+        const barWidth = (chartWidth / data.length) * 0.6;
+        const gap = (chartWidth / data.length) * 0.4;
+        
+        // Draw grid lines
+        ctx.strokeStyle = 'rgba(255,255,255,0.05)';
+        ctx.lineWidth = 1;
+        for (let i = 0; i <= 4; i++) {
+          const y = padding + (chartHeight / 4) * i;
+          ctx.beginPath();
+          ctx.moveTo(padding, y);
+          ctx.lineTo(width - padding, y);
+          ctx.stroke();
+        }
+        
+        // Draw bars
+        ctx.fillStyle = color;
+        data.forEach((value, index) => {
+          const barHeight = (value / maxValue) * chartHeight;
+          const x = padding + (chartWidth / data.length) * index + gap / 2;
+          const y = padding + chartHeight - barHeight;
+          
+          // Rounded corners
+          ctx.beginPath();
+          const radius = 3;
+          ctx.moveTo(x + radius, y);
+          ctx.lineTo(x + barWidth - radius, y);
+          ctx.quadraticCurveTo(x + barWidth, y, x + barWidth, y + radius);
+          ctx.lineTo(x + barWidth, y + barHeight);
+          ctx.lineTo(x, y + barHeight);
+          ctx.lineTo(x, y + radius);
+          ctx.quadraticCurveTo(x, y, x + radius, y);
+          ctx.closePath();
+          ctx.fill();
+        });
+      }
+      
+      function drawAreaChart(canvas, data, color) {
+        const ctx = canvas.getContext('2d');
+        const width = canvas.width;
+        const height = canvas.height;
+        const padding = 20;
+        const chartWidth = width - padding * 2;
+        const chartHeight = height - padding * 2;
+        
+        ctx.clearRect(0, 0, width, height);
+        
+        const maxValue = Math.max(...data);
+        const minValue = Math.min(...data);
+        const range = maxValue - minValue || 1;
+        
+        // Draw grid lines
+        ctx.strokeStyle = 'rgba(255,255,255,0.05)';
+        ctx.lineWidth = 1;
+        for (let i = 0; i <= 4; i++) {
+          const y = padding + (chartHeight / 4) * i;
+          ctx.beginPath();
+          ctx.moveTo(padding, y);
+          ctx.lineTo(width - padding, y);
+          ctx.stroke();
+        }
+        
+        // Draw filled area
+        ctx.fillStyle = color;
+        ctx.beginPath();
+        ctx.moveTo(padding, padding + chartHeight);
+        
+        data.forEach((value, index) => {
+          const x = padding + (chartWidth / (data.length - 1)) * index;
+          const y = padding + chartHeight - ((value - minValue) / range) * chartHeight;
+          ctx.lineTo(x, y);
+        });
+        
+        ctx.lineTo(width - padding, padding + chartHeight);
+        ctx.closePath();
+        ctx.fill();
+        
+        // Draw line on top
+        ctx.strokeStyle = color.replace('0.3', '1');
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        data.forEach((value, index) => {
+          const x = padding + (chartWidth / (data.length - 1)) * index;
+          const y = padding + chartHeight - ((value - minValue) / range) * chartHeight;
+          if (index === 0) {
+            ctx.moveTo(x, y);
+          } else {
+            ctx.lineTo(x, y);
+          }
+        });
+        ctx.stroke();
+      }
+      
+      // Initialize graphs when page loads
+      function initGraphs() {
+        // AQI Trend Chart (7 days)
+        const aqiCanvas = document.getElementById('aqi-trend-chart');
+        if (aqiCanvas) {
+          aqiCanvas.width = aqiCanvas.offsetWidth;
+          aqiCanvas.height = 140;
+          const aqiData = [32, 28, 25, 30, 27, 26, 28];
+          drawLineChart(aqiCanvas, aqiData, '#43ff88', 'rgba(67,255,136,0.1)');
+        }
+        
+        // Active Nodes Chart
+        const nodesCanvas = document.getElementById('nodes-chart');
+        if (nodesCanvas) {
+          nodesCanvas.width = nodesCanvas.offsetWidth;
+          nodesCanvas.height = 140;
+          const nodesData = [2, 2, 3, 3, 3, 3, 3];
+          drawAreaChart(nodesCanvas, nodesData, 'rgba(24,224,181,0.3)');
+        }
+        
+      }
+      
+      // Initialize graphs on load and resize
+      window.addEventListener('load', initGraphs);
+      window.addEventListener('resize', initGraphs);
+      
+      // Active Nodes Data
+      const activeNodes = [
+        {
+          id: 'AQI-ET-RN-001',
+          type: 'AQI & Electricity Theft',
+          location: 'Raj Nagar',
+          icon: 'aqi',
+          iconSymbol: '📊'
+        },
+        {
+          id: 'DUSTBIN-RN-001',
+          type: 'Smart Dustbin',
+          location: 'Raj Nagar',
+          icon: 'dustbin',
+          iconSymbol: '🗑️'
+        },
+        {
+          id: 'WQ-KIET-001',
+          type: 'Water Quality',
+          location: 'KIET Group of Institutions',
+          icon: 'water',
+          iconSymbol: '💧'
+        }
+      ];
+      
+      // Populate nodes bifurcation
+      function populateNodesBifurcation() {
+        const nodesList = document.getElementById('nodes-list');
+        if (!nodesList) return;
+        
+        nodesList.innerHTML = '';
+        
+        activeNodes.forEach(node => {
+          const nodeItem = document.createElement('div');
+          nodeItem.className = 'node-item';
+          
+          nodeItem.innerHTML = `
+            <div class="node-icon ${node.icon}">${node.iconSymbol}</div>
+            <div class="node-info">
+              <div class="node-type">${node.type}</div>
+              <div class="node-location">${node.location}</div>
+            </div>
+          `;
+          
+          nodesList.appendChild(nodeItem);
+        });
+      }
+      
+      // Initialize nodes bifurcation on page load
+      populateNodesBifurcation();
+      
+      // Alert Logs Data - cleared all dummy data
+      const alertLogs = [];
+      let alertIdCounter = 1;
+      
+      // Populate alert logs
+      function populateAlertLogs() {
+        const alertLogsList = document.getElementById('alert-logs-list');
+        if (!alertLogsList) return;
+        
+        alertLogsList.innerHTML = '';
+        
+        alertLogs.forEach(alert => {
+          const alertItem = document.createElement('div');
+          alertItem.className = `alert-log-item ${alert.type}`;
+          
+          alertItem.innerHTML = `
+            <div class="alert-log-icon">${alert.icon}</div>
+            <div class="alert-log-content">
+              <div class="alert-log-title">${alert.title}</div>
+              <div class="alert-log-description">${alert.description}</div>
+              <div class="alert-log-meta">
+                <div class="alert-log-location">
+                  <span>📍</span>
+                  <span>${alert.location}</span>
+                </div>
+                <div class="alert-log-time">
+                  <span>🕐</span>
+                  <span>${alert.time}</span>
+                </div>
+                <div style="margin-left: auto; font-weight: 600; color: var(--text);">
+                  ${alert.value}
+                </div>
+              </div>
+            </div>
+          `;
+          
+          alertLogsList.appendChild(alertItem);
+        });
+      }
+      
+      // Initialize alert logs on page load
+      populateAlertLogs();
+      
+      // All 100 Municipal Wards
+      const allWards = [
+        { id: 1, name: 'Bagu Krishna Nagar' },
+        { id: 2, name: 'Rahul Vihar' },
+        { id: 3, name: 'Old Vijay Nagar' },
+        { id: 4, name: 'Mata Colony' },
+        { id: 5, name: 'Vihar' },
+        { id: 6, name: 'Deen Dayal Puri' },
+        { id: 7, name: 'Bihari Pura' },
+        { id: 8, name: 'Nehru Nagar II' },
+        { id: 9, name: 'Sibbanpura' },
+        { id: 10, name: 'DLF Colony' },
+        { id: 11, name: 'Nandgram Deen Dayal Puri' },
+        { id: 12, name: 'Kalka Garhi' },
+        { id: 13, name: 'Ghukna' },
+        { id: 14, name: 'New Vijay Nagar' },
+        { id: 15, name: 'Charan Singh Colony' },
+        { id: 16, name: 'Morta' },
+        { id: 17, name: 'Seva Nagar' },
+        { id: 18, name: 'Shashtri Nagar Razapur' },
+        { id: 19, name: 'Patel Nagar Mukand Nagar' },
+        { id: 20, name: 'Bhopura' },
+        { id: 21, name: 'Bhowapur' },
+        { id: 22, name: 'Daulatpura' },
+        { id: 23, name: 'Kailash Nagar' },
+        { id: 24, name: 'Mehrauli' },
+        { id: 25, name: 'Ambedkar Nagar' },
+        { id: 26, name: 'Madhopur' },
+        { id: 27, name: 'Dundahera' },
+        { id: 28, name: 'Rajiv Colony' },
+        { id: 29, name: 'Kuri' },
+        { id: 30, name: 'Sadarpur' },
+        { id: 31, name: 'Nandgram Sihani' },
+        { id: 32, name: 'Krishna Nagar' },
+        { id: 33, name: 'Sarai Nazar Ali' },
+        { id: 34, name: 'Shahid Nagar I' },
+        { id: 35, name: 'Akbarpur' },
+        { id: 36, name: 'Prahalad Garhi' },
+        { id: 37, name: 'Shalimar Garden' },
+        { id: 38, name: 'Arthala' },
+        { id: 39, name: 'Nasirpur' },
+        { id: 40, name: 'Sahibabad' },
+        { id: 41, name: 'Maharajpur' },
+        { id: 42, name: 'Shahpur Bamheta' },
+        { id: 43, name: 'Kadkad Model' },
+        { id: 44, name: 'Sanjay Colony' },
+        { id: 45, name: 'Karhera' },
+        { id: 46, name: 'Guldhar' },
+        { id: 47, name: 'Shahtri Nagar Mahendra Enclave' },
+        { id: 48, name: 'Mirzapur' },
+        { id: 49, name: 'Nandgram Mariyam Nagar' },
+        { id: 50, name: 'Sadiq Nagar' },
+        { id: 51, name: 'Pratap Vihar Sector 11' },
+        { id: 52, name: 'Arya Nagar Kotgaon' },
+        { id: 53, name: 'Raispur' },
+        { id: 54, name: 'Vasundhara I' },
+        { id: 55, name: 'Vijay Nagar Sec 11 E Block' },
+        { id: 56, name: 'Chiranjeev Vihar Avantika' },
+        { id: 57, name: 'Makanpur' },
+        { id: 58, name: 'Shivpuri' },
+        { id: 59, name: 'Chandrapuri' },
+        { id: 60, name: 'Shyam Park Main' },
+        { id: 61, name: 'Vasundhara II' },
+        { id: 62, name: 'Govindpuram Harsaon' },
+        { id: 63, name: 'Pasaunda' },
+        { id: 64, name: 'Garima Garden' },
+        { id: 65, name: 'Vivekanand Nagar Jivan Vihar' },
+        { id: 66, name: 'Mausam Vihar' },
+        { id: 67, name: 'Kamla Nehru Nagar Sanjay Nagar I' },
+        { id: 68, name: 'Brij Vihar' },
+        { id: 69, name: 'Lohiya Nagar' },
+        { id: 70, name: 'Janakpuri' },
+        { id: 71, name: 'Sanjay Nagar II' },
+        { id: 72, name: 'Kaushambi' },
+        { id: 73, name: 'Shalimar Garden Extension' },
+        { id: 74, name: 'Vasundhara III' },
+        { id: 75, name: 'Lajpat Nagar I' },
+        { id: 76, name: 'Vaishali I' },
+        { id: 77, name: 'Vaishali II' },
+        { id: 78, name: 'Shalimar Garden Extension I' },
+        { id: 79, name: 'Abhay Khand' },
+        { id: 80, name: 'Rajendra Nagar sec 2' },
+        { id: 81, name: 'Shakti Khand' },
+        { id: 82, name: 'Jawahar Park' },
+        { id: 83, name: 'Shyam Park Extension' },
+        { id: 84, name: 'Raj Nagar' },
+        { id: 85, name: 'Lajpat Nagar II' },
+        { id: 86, name: 'Rajendra Nagar Sec 5' },
+        { id: 87, name: 'Gyankhand Indirapuram' },
+        { id: 88, name: 'Gandhi Nagar Turab Nagar' },
+        { id: 89, name: 'Vaishali III' },
+        { id: 90, name: 'Shahid Nagar II' },
+        { id: 91, name: 'Kavi Nagar' },
+        { id: 92, name: 'Kaila Islam Nagar' },
+        { id: 93, name: 'Kaila Bhatta' },
+        { id: 94, name: 'Surya Nagar' },
+        { id: 95, name: 'Prem Nagar Kaila' },
+        { id: 96, name: 'Nehru Nagar III' },
+        { id: 97, name: 'Ramprastha' },
+        { id: 98, name: 'Ahinsa Khand' },
+        { id: 99, name: 'Vaibhav Khand I' },
+        { id: 100, name: 'Shipra Suncity Indirapuram' }
+      ];
+
+      // All Wards with performance data (sorted by score)
+      const allWardsData = [
+        { id: 54, name: 'Vasundhara I', score: 95, status: 'good', aqi: 22, cleanliness: 98, nodes: 142, alerts: 0 },
+        { id: 76, name: 'Vaishali I', score: 93, status: 'good', aqi: 24, cleanliness: 96, nodes: 138, alerts: 1 },
+        { id: 1, name: 'Bagu Krishna Nagar', score: 92, status: 'good', aqi: 25, cleanliness: 95, nodes: 125, alerts: 0 },
+        { id: 77, name: 'Vaishali II', score: 90, status: 'good', aqi: 26, cleanliness: 94, nodes: 132, alerts: 2 },
+        { id: 89, name: 'Vaishali III', score: 88, status: 'good', aqi: 28, cleanliness: 92, nodes: 128, alerts: 1 },
+        { id: 84, name: 'Raj Nagar', score: 75, status: 'moderate', aqi: 42, cleanliness: 78, nodes: 115, alerts: 4 },
+        { id: 72, name: 'Kaushambi', score: 72, status: 'moderate', aqi: 45, cleanliness: 75, nodes: 108, alerts: 5 },
+        { id: 87, name: 'Gyankhand Indirapuram', score: 70, status: 'moderate', aqi: 48, cleanliness: 72, nodes: 102, alerts: 6 },
+        { id: 40, name: 'Sahibabad', score: 58, status: 'poor', aqi: 65, cleanliness: 55, nodes: 95, alerts: 12 },
+        { id: 45, name: 'Karhera', score: 52, status: 'poor', aqi: 72, cleanliness: 48, nodes: 88, alerts: 15 },
+        { id: 61, name: 'Vasundhara II', score: 68, status: 'moderate', aqi: 50, cleanliness: 70, nodes: 105, alerts: 7 },
+        { id: 74, name: 'Vasundhara III', score: 66, status: 'moderate', aqi: 52, cleanliness: 68, nodes: 100, alerts: 8 },
+        { id: 75, name: 'Lajpat Nagar I', score: 64, status: 'moderate', aqi: 54, cleanliness: 65, nodes: 98, alerts: 9 },
+        { id: 85, name: 'Lajpat Nagar II', score: 62, status: 'moderate', aqi: 56, cleanliness: 63, nodes: 96, alerts: 10 },
+        { id: 79, name: 'Abhay Khand', score: 60, status: 'moderate', aqi: 58, cleanliness: 60, nodes: 94, alerts: 11 },
+        { id: 100, name: 'Shipra Suncity Indirapuram', score: 85, status: 'good', aqi: 30, cleanliness: 90, nodes: 120, alerts: 2 },
+        { id: 99, name: 'Vaibhav Khand I', score: 83, status: 'good', aqi: 32, cleanliness: 88, nodes: 118, alerts: 3 },
+        { id: 98, name: 'Ahinsa Khand', score: 81, status: 'good', aqi: 34, cleanliness: 86, nodes: 116, alerts: 4 },
+        { id: 97, name: 'Ramprastha', score: 79, status: 'moderate', aqi: 38, cleanliness: 82, nodes: 112, alerts: 5 },
+        { id: 96, name: 'Nehru Nagar III', score: 77, status: 'moderate', aqi: 40, cleanliness: 80, nodes: 110, alerts: 6 },
+        { id: 95, name: 'Prem Nagar Kaila', score: 56, status: 'poor', aqi: 68, cleanliness: 52, nodes: 92, alerts: 13 },
+        { id: 94, name: 'Surya Nagar', score: 54, status: 'poor', aqi: 70, cleanliness: 50, nodes: 90, alerts: 14 },
+        { id: 93, name: 'Kaila Bhatta', score: 50, status: 'poor', aqi: 74, cleanliness: 46, nodes: 86, alerts: 16 },
+        { id: 92, name: 'Kaila Islam Nagar', score: 48, status: 'poor', aqi: 76, cleanliness: 44, nodes: 84, alerts: 17 },
+        { id: 91, name: 'Kavi Nagar', score: 46, status: 'poor', aqi: 78, cleanliness: 42, nodes: 82, alerts: 18 }
+      ];
+
+      let displayedWardsCount = 10;
+      const wardsPerLoad = 5;
+
+      // Commercial Land Data
+      const allCommercialLandData = [
+        { id: 1, name: 'KIET Group of Institutions', area: '15.2 acres', score: 96, status: 'good', aqi: 28, footfall: 8500, revenue: 0, occupancy: 98, alerts: 0 },
+        { id: 2, name: 'Vasundhara Enclave Mall', area: '2.5 acres', score: 94, status: 'good', aqi: 24, footfall: 12500, revenue: 45.2, occupancy: 92, alerts: 1 },
+        { id: 3, name: 'Shipra Mall Complex', area: '3.2 acres', score: 92, status: 'good', aqi: 26, footfall: 11800, revenue: 42.8, occupancy: 89, alerts: 0 },
+        { id: 4, name: 'Vaishali Metro Station Plaza', area: '1.8 acres', score: 90, status: 'good', aqi: 28, footfall: 15200, revenue: 38.5, occupancy: 95, alerts: 2 },
+        { id: 5, name: 'Indirapuram Commercial Hub', area: '4.5 acres', score: 88, status: 'good', aqi: 30, footfall: 9800, revenue: 52.3, occupancy: 87, alerts: 1 },
+        { id: 6, name: 'Raj Nagar Business Center', area: '2.8 acres', score: 85, status: 'good', aqi: 32, footfall: 11200, revenue: 41.6, occupancy: 91, alerts: 3 },
+        { id: 7, name: 'Vijay Nagar Shopping District', area: '3.5 acres', score: 82, status: 'good', aqi: 34, footfall: 10500, revenue: 39.2, occupancy: 88, alerts: 2 },
+        { id: 8, name: 'Kaushambi IT Park', area: '5.2 acres', score: 80, status: 'good', aqi: 36, footfall: 8500, revenue: 48.7, occupancy: 94, alerts: 4 },
+        { id: 9, name: 'Shalimar Garden Market', area: '1.5 acres', score: 78, status: 'moderate', aqi: 42, footfall: 13200, revenue: 35.8, occupancy: 85, alerts: 5 },
+        { id: 10, name: 'Sahibabad Industrial Zone', area: '6.8 acres', score: 75, status: 'moderate', aqi: 48, footfall: 7200, revenue: 55.4, occupancy: 82, alerts: 6 },
+        { id: 11, name: 'Crossroads Mall', area: '2.1 acres', score: 72, status: 'moderate', aqi: 50, footfall: 10800, revenue: 37.5, occupancy: 79, alerts: 7 },
+        { id: 12, name: 'City Center Plaza', area: '3.8 acres', score: 70, status: 'moderate', aqi: 52, footfall: 9600, revenue: 43.2, occupancy: 76, alerts: 8 },
+        { id: 13, name: 'Gaur City Mall', area: '4.2 acres', score: 68, status: 'moderate', aqi: 54, footfall: 8900, revenue: 40.1, occupancy: 73, alerts: 9 },
+        { id: 14, name: 'Nexus Mall', area: '2.9 acres', score: 65, status: 'moderate', aqi: 56, footfall: 10200, revenue: 36.8, occupancy: 70, alerts: 10 },
+        { id: 15, name: 'Pacific Mall', area: '3.6 acres', score: 62, status: 'moderate', aqi: 58, footfall: 9400, revenue: 34.5, occupancy: 67, alerts: 11 },
+        { id: 16, name: 'Ambience Mall', area: '5.5 acres', score: 58, status: 'poor', aqi: 65, footfall: 7800, revenue: 31.2, occupancy: 64, alerts: 12 }
+      ];
+
+      let displayedCommercialCount = 10;
+      const commercialPerLoad = 5;
+
+      // Create ward tile element
+      function createWardTile(ward, index) {
+          const tile = document.createElement('div');
+          
+          // Check if this tile should be active (Raj Nagar)
+          const isActive = ward.name === 'Raj Nagar';
+          const deactivatedClass = isActive ? '' : 'deactivated';
+          
+          tile.className = `ward-tile ${ward.status} ${deactivatedClass}`;
+          tile.dataset.wardId = ward.id;
+          tile.dataset.wardData = JSON.stringify(ward);
+          
+          const aqiClass = ward.aqi <= 30 ? 'good' : ward.aqi <= 60 ? 'moderate' : 'poor';
+          const cleanlinessClass = ward.cleanliness >= 80 ? 'good' : ward.cleanliness >= 60 ? 'moderate' : 'poor';
+          // Derive a simple Water Quality Index (0-100) from AQI and Cleanliness
+          const waterQuality = Math.max(0, Math.min(100, 100 - ward.aqi + Math.round((ward.cleanliness - 50) / 2)));
+          const waterClass = waterQuality >= 80 ? 'good' : waterQuality >= 60 ? 'moderate' : 'poor';
+          
+          tile.innerHTML = `
+            <div class="ward-tile-header">
+              <span class="ward-rank">#${index + 1}</span>
+              <span class="ward-name-tile">${ward.name}</span>
+              <span class="ward-status-badge">${ward.status}</span>
+            </div>
+            <div class="ward-params">
+              <div class="param-row">
+                <span class="param-label">AQI (PM2.5)</span>
+                <span class="param-value ${aqiClass}">${ward.aqi}</span>
+              </div>
+              <div class="param-row">
+                <span class="param-label">Water Quality</span>
+                <span class="param-value ${waterClass}">${waterQuality}</span>
+              </div>
+              <div class="param-row">
+                <span class="param-label">Cleanliness (Last Inspection)</span>
+                <span class="param-value ${cleanlinessClass}">${ward.cleanliness}%</span>
+              </div>
+            </div>
+            <div class="ward-score">
+              <span class="score-label">Performance Score</span>
+              <span class="score-value">${ward.score}</span>
+            </div>
+          `;
+
+
+          // Only allow clicks on active tiles
+          if (isActive) {
+            tile.addEventListener('click', () => openWardDetail(ward));
+          }
+          
+          return tile;
+      }
+
+      // Populate wards tiles
+      function populateWardsTiles() {
+        const grid = document.getElementById('wards-grid');
+        const loadMoreBtn = document.getElementById('load-more-btn');
+        
+        // Clear existing tiles (except those already displayed)
+        const currentTiles = grid.querySelectorAll('.ward-tile');
+        currentTiles.forEach(tile => tile.remove());
+        
+        // Get wards to display
+        const wardsToShow = allWardsData.slice(0, displayedWardsCount);
+        
+        wardsToShow.forEach((ward, index) => {
+          const tile = createWardTile(ward, index);
+          grid.appendChild(tile);
+        });
+        
+        // Update load more button
+        if (displayedWardsCount >= allWardsData.length) {
+          loadMoreBtn.disabled = true;
+          loadMoreBtn.textContent = 'All wards loaded';
+        } else {
+          loadMoreBtn.disabled = false;
+          const remaining = allWardsData.length - displayedWardsCount;
+          loadMoreBtn.textContent = `Load More (${Math.min(wardsPerLoad, remaining)} wards)`;
+        }
+      }
+
+      // Load more wards handler
+      function loadMoreWards() {
+        displayedWardsCount = Math.min(displayedWardsCount + wardsPerLoad, allWardsData.length);
+        populateWardsTiles();
+        
+        // Scroll to newly loaded wards
+        const grid = document.getElementById('wards-grid');
+        const lastTile = grid.lastElementChild;
+        if (lastTile) {
+          lastTile.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+      }
+
+      // Open ward detail modal
+      function openWardDetail(ward) {
+        const modal = document.getElementById('ward-detail-modal');
+        const content = document.getElementById('ward-detail-content');
+        
+        const aqiClass = ward.aqi <= 30 ? 'good' : ward.aqi <= 60 ? 'moderate' : 'poor';
+        const cleanlinessClass = ward.cleanliness >= 80 ? 'good' : ward.cleanliness >= 60 ? 'moderate' : 'poor';
+        const waterQuality = Math.max(0, Math.min(100, 100 - ward.aqi + Math.round((ward.cleanliness - 50) / 2)));
+        const waterClass = waterQuality >= 80 ? 'good' : waterQuality >= 60 ? 'moderate' : 'poor';
+        
+        content.innerHTML = `
+          <div class="ward-modal-header">
+            <h3>${ward.name}</h3>
+            <div class="ward-id-detail">Ward ID: ${ward.id}</div>
+          </div>
+          <div class="ward-detail-grid">
+            <div class="detail-param-card">
+              <div class="detail-param-label">Performance Score</div>
+              <div class="detail-param-value" style="color: ${ward.status === 'good' ? 'var(--good)' : ward.status === 'moderate' ? 'var(--moderate)' : 'var(--poor)'};">${ward.score}</div>
+            </div>
+            <div class="detail-param-card">
+              <div class="detail-param-label">Status</div>
+              <div class="detail-param-value" style="color: ${ward.status === 'good' ? 'var(--good)' : ward.status === 'moderate' ? 'var(--moderate)' : 'var(--poor)'}; text-transform: uppercase; font-size: 18px;">${ward.status}</div>
+            </div>
+            <div class="detail-param-card">
+              <div class="detail-param-label">AQI (PM2.5)</div>
+              <div class="detail-param-value ${aqiClass}">${ward.aqi} µg/m³</div>
+            </div>
+            <div class="detail-param-card">
+              <div class="detail-param-label">Water Quality</div>
+              <div class="detail-param-value ${waterClass}">${waterQuality}</div>
+            </div>
+            <div class="detail-param-card">
+              <div class="detail-param-label">Cleanliness (Last Inspection)</div>
+              <div class="detail-param-value ${cleanlinessClass}">${ward.cleanliness}%</div>
+            </div>
+          </div>
+          <div class="graph-card" style="margin-top: 12px;">
+            <div class="graph-card-header">
+              <div class="graph-card-title">Trends (Last 7)</div>
+            </div>
+            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px;">
+              <canvas id="ward-aqi-chart" height="140"></canvas>
+              <canvas id="ward-water-chart" height="140"></canvas>
+              <canvas id="ward-clean-chart" height="140"></canvas>
+            </div>
+          </div>
+          <div class="alert-logs-section" style="margin-top: 16px;">
+            <div class="alert-logs-header">
+              <h3>Alert Logs for ${ward.name}</h3>
+              <p>Recent alerts scoped to this ward</p>
+            </div>
+            <div class="alert-logs-list" id="ward-alerts-list"></div>
+          </div>
+          <div class="ward-credentials-box">
+            <div class="credentials-title">Login Credentials</div>
+            <div class="credential-row">
+              <span class="credential-label">Ward ID:</span>
+              <span class="credential-value">${ward.name}</span>
+            </div>
+            <div class="credential-row">
+              <span class="credential-label">Password:</span>
+              <span class="credential-value">admin</span>
+            </div>
+          </div>
+        `;
+        
+        modal.classList.add('active');
+        modal.setAttribute('aria-hidden', 'false');
+        document.body.style.overflow = 'hidden';
+        // Render ward charts
+        (function(){
+          // Use real-time AQI history for Raj Nagar if available
+          let aqiTrend;
+          if (ward.id === 84 && ward.name === 'Raj Nagar' && rajNagarAQIHistory.length > 0) {
+            aqiTrend = rajNagarAQIHistory.length >= 7 
+              ? [...rajNagarAQIHistory]
+              : [...rajNagarAQIHistory, ...Array(7 - rajNagarAQIHistory.length).fill(ward.aqi)];
+          } else {
+            aqiTrend = [ward.aqi + 3, ward.aqi - 2, ward.aqi - 5, ward.aqi - 1, ward.aqi - 3, ward.aqi - 2, ward.aqi];
+          }
+          const waterTrend = aqiTrend.map(v => Math.max(0, Math.min(100, 100 - v + Math.round((ward.cleanliness - 50) / 2))));
+          const cleanTrend = [ward.cleanliness - 5, ward.cleanliness - 3, ward.cleanliness - 2, ward.cleanliness - 1, ward.cleanliness, ward.cleanliness - 1, ward.cleanliness];
+          const aqiCanvas = document.getElementById('ward-aqi-chart');
+          const waterCanvas = document.getElementById('ward-water-chart');
+          const cleanCanvas = document.getElementById('ward-clean-chart');
+          if (aqiCanvas) { aqiCanvas.width = aqiCanvas.offsetWidth || 240; drawLineChart(aqiCanvas, aqiTrend, '#ff6b6b', 'rgba(255,107,107,0.1)'); }
+          if (waterCanvas) { waterCanvas.width = waterCanvas.offsetWidth || 240; drawLineChart(waterCanvas, waterTrend, '#18e0b5', 'rgba(24,224,181,0.1)'); }
+          if (cleanCanvas) { cleanCanvas.width = cleanCanvas.offsetWidth || 240; drawBarChart(cleanCanvas, cleanTrend, '#43ff88'); }
+
+          // Populate ward-specific alerts
+          const wardAlertsList = document.getElementById('ward-alerts-list');
+          if (wardAlertsList) {
+            const filtered = alertLogs.filter(a => (a.location || '').toLowerCase().includes(ward.name.toLowerCase()));
+            if (filtered.length === 0) {
+              wardAlertsList.innerHTML = '<div style="color: var(--muted); font-size: 13px;">No alerts for this ward</div>';
+            } else {
+              wardAlertsList.innerHTML = '';
+              filtered.forEach(alert => {
+                const el = document.createElement('div');
+                el.className = `alert-log-item ${alert.type}`;
+                el.innerHTML = `
+                  <div class="alert-log-icon">${alert.icon}</div>
+                  <div class="alert-log-content">
+                    <div class="alert-log-title">${alert.title}</div>
+                    <div class="alert-log-description">${alert.description}</div>
+                    <div class="alert-log-meta">
+                      <div class="alert-log-location"><span>📍</span><span>${alert.location}</span></div>
+                      <div class="alert-log-time"><span>🕐</span><span>${alert.time}</span></div>
+                      <div style="margin-left: auto; font-weight: 600; color: var(--text);">${alert.value || ''}</div>
+                    </div>
+                  </div>
+                `;
+                wardAlertsList.appendChild(el);
+              });
+            }
+          }
+        })();
+      }
+
+      // Close ward detail modal
+      function closeWardDetail() {
+        const modal = document.getElementById('ward-detail-modal');
+        modal.classList.remove('active');
+        modal.setAttribute('aria-hidden', 'true');
+        document.body.style.overflow = '';
+      }
+
+      // Conduct drone inspection handler
+      function conductDroneInspection(wardName, wardId) {
+        alert(`🚁 Drone Inspection Initiated\n\nWard: ${wardName}\nWard ID: ${wardId}\n\nDrone inspection will begin shortly. This process typically takes 15-20 minutes.`);
+        // You can add more functionality here, like updating UI, sending API request, etc.
+      }
+
+
+      // Modal close handlers
+      document.querySelector('.ward-modal-close').addEventListener('click', closeWardDetail);
+      document.querySelector('.ward-modal-overlay').addEventListener('click', closeWardDetail);
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+          const modal = document.getElementById('ward-detail-modal');
+          if (modal.classList.contains('active')) {
+            closeWardDetail();
+          }
+        }
+      });
+
+      // Initialize wards tiles
+      populateWardsTiles();
+
+      // Initialize Firebase AQI listener
+      initializeFirebaseAQI();
+      
+      // Initialize Firebase TDS listener for KIET
+      function initializeFirebaseTDS() {
+        // Get initial TDS value
+        database.ref('/tds').once('value').then((snapshot) => {
+          const tdsValue = snapshot.val();
+          if (tdsValue !== null && !isNaN(tdsValue)) {
+            const tds = parseFloat(tdsValue);
+            // Update TDS value (show actual value, no clamping)
+            kietWaterQualityData.tds = tds;
+            updateWaterQualityPopup();
+            
+            // Check for initial alert if TDS = 1
+            if ((tds === 1 || tds === "1") && !lastTDSAlertTriggered) {
+              showTDSAlertDialog(2000); // Show alert with 2000 as display value
+              addTDSAlertToLogs(2000);
+              lastTDSAlertTriggered = true;
+              
+              // Automatically reset /tds value to 0 after showing alert
+              setTimeout(() => {
+                database.ref('/tds').set(0)
+                  .then(() => {
+                    console.log("TDS value reset to 0 after initial alert");
+                    lastTDSAlertTriggered = false;
+                  })
+                  .catch((error) => {
+                    console.error("Error resetting TDS value:", error);
+                  });
+              }, 1000);
+            }
+            
+            // Update panel if it's open and showing KIET water quality
+            if (currentSensorData && currentSensorData.id === 'WQ-KIET-001') {
+              currentSensorData.tds = kietWaterQualityData.tds;
+              openSensorPanel(currentSensorData);
+            }
+          }
+        });
+        
+        // Listen to /tds endpoint for real-time updates
+        database.ref('/tds').on('value', (snapshot) => {
+          const tdsValue = snapshot.val();
+          if (tdsValue !== null && !isNaN(tdsValue)) {
+            const tds = parseFloat(tdsValue);
+            
+            // Update TDS value (don't clamp anymore - show actual value)
+            kietWaterQualityData.tds = tds;
+            kietWaterQualityData.lastUpdate = new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' });
+            updateWaterQualityPopup();
+            
+            // Update panel if it's open and showing KIET water quality
+            if (currentSensorData && currentSensorData.id === 'WQ-KIET-001') {
+              currentSensorData.tds = kietWaterQualityData.tds;
+              currentSensorData.lastUpdate = kietWaterQualityData.lastUpdate;
+              openSensorPanel(currentSensorData);
+            }
+            
+            // Check for TDS alert trigger (when /tds = 1) for KIET
+            if ((tds === 1 || tds === "1") && !lastTDSAlertTriggered) {
+              showTDSAlertDialog(2000); // Show alert with 2000 as display value
+              addTDSAlertToLogs(2000); // Add to logs with 2000 value
+              lastTDSAlertTriggered = true;
+              
+              // Automatically reset /tds value to 0 after showing alert
+              setTimeout(() => {
+                database.ref('/tds').set(0)
+                  .then(() => {
+                    console.log("TDS value reset to 0 after alert");
+                    lastTDSAlertTriggered = false; // Reset flag so alert can be shown again
+                  })
+                  .catch((error) => {
+                    console.error("Error resetting TDS value:", error);
+                  });
+              }, 1000); // Wait 1 second before resetting
+            } else if (tds !== 1 && tds !== "1") {
+              // Reset alert trigger when TDS is not 1
+              lastTDSAlertTriggered = false;
+              lastTDSAlertValue = 0;
+            }
+            
+            console.log(`KIET TDS updated: ${kietWaterQualityData.tds} ppm`);
+          }
+        }, (error) => {
+          console.error("Firebase TDS listener error:", error);
+        });
+      }
+      
+      // Initialize TDS listener after authentication
+      auth.onAuthStateChanged((user) => {
+        if (user) {
+          initializeFirebaseTDS();
+          initializeFirebaseTheft();
+          initializeFirebaseDustbin();
+        }
+      });
+      
+      // Initialize Firebase Theft listener
+      function initializeFirebaseTheft() {
+        // Listen to /theft endpoint for real-time updates
+        database.ref('/theft').on('value', (snapshot) => {
+          const theftValue = snapshot.val();
+          console.log("Theft value from Firebase:", theftValue);
+          
+          if (theftValue === 1 || theftValue === "1") {
+            // Show alert if not already shown
+            if (!lastTheftAlertTriggered) {
+              showTheftAlertDialog();
+              addTheftAlertToLogs();
+              lastTheftAlertTriggered = true;
+              
+              // Automatically reset /theft value to 0 after showing alert
+              setTimeout(() => {
+                database.ref('/theft').set(0)
+                  .then(() => {
+                    console.log("Theft value reset to 0 after alert");
+                    lastTheftAlertTriggered = false; // Reset flag so alert can be shown again
+                  })
+                  .catch((error) => {
+                    console.error("Error resetting theft value:", error);
+                  });
+              }, 1000); // Wait 1 second before resetting
+            }
+          } else {
+            // Reset alert trigger when theft value is cleared
+            lastTheftAlertTriggered = false;
+          }
+        }, (error) => {
+          console.error("Firebase theft listener error:", error);
+        });
+      }
+      
+      // Initialize Firebase Dustbin listener
+      function initializeFirebaseDustbin() {
+        // Get initial dustbin value
+        database.ref('/dustbin').once('value').then((snapshot) => {
+          const dustbinValue = snapshot.val();
+          if (dustbinValue !== null && !isNaN(dustbinValue)) {
+            const dustbin = parseFloat(dustbinValue);
+            // Check for initial alert if dustbin > 80
+            if (dustbin > 80 && (!lastDustbinAlertTriggered || dustbin !== lastDustbinAlertValue)) {
+              showDustbinAlertDialog(dustbin);
+              addDustbinAlertToLogs(dustbin);
+              lastDustbinAlertTriggered = true;
+              lastDustbinAlertValue = dustbin;
+            }
+          }
+        });
+        
+        // Listen to /dustbin endpoint for real-time updates
+        database.ref('/dustbin').on('value', (snapshot) => {
+          const dustbinValue = snapshot.val();
+          if (dustbinValue !== null && !isNaN(dustbinValue)) {
+            const dustbin = parseFloat(dustbinValue);
+            console.log(`Raj Nagar Dustbin fill level: ${dustbin}%`);
+            
+            // Check for dustbin alert trigger (when /dustbin > 80) for Raj Nagar
+            if (dustbin > 80 && (!lastDustbinAlertTriggered || dustbin !== lastDustbinAlertValue)) {
+              showDustbinAlertDialog(dustbin);
+              addDustbinAlertToLogs(dustbin);
+              lastDustbinAlertTriggered = true;
+              lastDustbinAlertValue = dustbin;
+            } else if (dustbin <= 80) {
+              // Reset alert trigger when dustbin level drops below threshold
+              lastDustbinAlertTriggered = false;
+              lastDustbinAlertValue = 0;
+            }
+          }
+        }, (error) => {
+          console.error("Firebase dustbin listener error:", error);
+        });
+      }
+      
+      // Show Electricity Theft Alert Dialog
+      function showTheftAlertDialog() {
+        // Play alert sound
+        playAlertSound();
+        
+        // Create or get alert dialog
+        let alertDialog = document.getElementById('theft-alert-dialog');
+        if (!alertDialog) {
+          alertDialog = document.createElement('div');
+          alertDialog.id = 'theft-alert-dialog';
+          alertDialog.className = 'theft-alert-dialog';
+          alertDialog.innerHTML = `
+            <div class="theft-alert-overlay"></div>
+            <div class="theft-alert-content">
+              <div class="theft-alert-icon">⚡</div>
+              <div class="theft-alert-title">Electricity Theft Detected</div>
+              <div class="theft-alert-message">
+                Unauthorized electricity consumption has been detected in Raj Nagar ward. Immediate investigation required.
+              </div>
+              <div class="theft-alert-buttons">
+                <button class="theft-alert-btn theft-alert-btn-dismiss" id="theft-alert-dismiss">Dismiss</button>
+                <button class="theft-alert-btn theft-alert-btn-send" id="theft-alert-send">Investigate</button>
+              </div>
+            </div>
+          `;
+          document.body.appendChild(alertDialog);
+          
+          // Add event listeners
+          document.getElementById('theft-alert-dismiss').addEventListener('click', () => {
+            closeTheftAlertDialog();
+          });
+          
+          document.getElementById('theft-alert-send').addEventListener('click', () => {
+            sendTheftInvestigation();
+            closeTheftAlertDialog();
+          });
+          
+          document.querySelector('.theft-alert-overlay').addEventListener('click', () => {
+            closeTheftAlertDialog();
+          });
+          
+          // Close on Escape key
+          const escapeHandler = (e) => {
+            if (e.key === 'Escape' && alertDialog.classList.contains('active')) {
+              closeTheftAlertDialog();
+              document.removeEventListener('keydown', escapeHandler);
+            }
+          };
+          document.addEventListener('keydown', escapeHandler);
+        }
+        
+        // Show dialog
+        alertDialog.classList.add('active');
+        document.body.style.overflow = 'hidden';
+      }
+      
+      // Close Electricity Theft Alert Dialog
+      function closeTheftAlertDialog() {
+        const alertDialog = document.getElementById('theft-alert-dialog');
+        if (alertDialog) {
+          alertDialog.classList.remove('active');
+          document.body.style.overflow = '';
+        }
+      }
+      
+      // Send Theft Investigation
+      function sendTheftInvestigation() {
+        // You can implement actual investigation functionality here
+        alert(`✅ Investigation team dispatched to Raj Nagar ward\n\nAlert: Electricity theft detected\n\nTeam will investigate and report back within 24 hours.`);
+        console.log('Investigation team dispatched for electricity theft in Raj Nagar');
+      }
+      
+      // Add Electricity Theft Alert to Alert Logs
+      function addTheftAlertToLogs() {
+        const now = new Date();
+        const timeAgo = 'Just now';
+        
+        const newAlert = {
+          id: alertIdCounter++,
+          type: 'critical',
+          icon: '⚡',
+          title: 'Electricity Theft Alert',
+          description: `Unauthorized electricity consumption detected in Raj Nagar ward. Investigation team dispatched.`,
+          location: 'Raj Nagar',
+          time: timeAgo,
+          value: 'Theft: Active'
+        };
+        
+        // Add to beginning of array
+        alertLogs.unshift(newAlert);
+        
+        // Limit to 50 alerts max
+        if (alertLogs.length > 50) {
+          alertLogs.pop();
+        }
+        
+        // Update alert logs display
+        populateAlertLogs();
+      }
+      
+      // Show Dustbin Alert Dialog for Raj Nagar
+      function showDustbinAlertDialog(dustbinValue) {
+        // Play alert sound (always play, even if dialog exists)
+        playAlertSound();
+        
+        // Create or get alert dialog
+        let alertDialog = document.getElementById('dustbin-alert-dialog');
+        if (!alertDialog) {
+          alertDialog = document.createElement('div');
+          alertDialog.id = 'dustbin-alert-dialog';
+          alertDialog.className = 'dustbin-alert-dialog';
+          alertDialog.innerHTML = `
+            <div class="dustbin-alert-overlay"></div>
+            <div class="dustbin-alert-content">
+              <div class="dustbin-alert-icon">🗑️</div>
+              <div class="dustbin-alert-title">Dustbin Fill Alert - Raj Nagar</div>
+              <div class="dustbin-alert-message">
+                Smart dustbin in Raj Nagar ward has exceeded 80% capacity. Immediate waste collection required.
+              </div>
+              <div class="dustbin-alert-value">${Math.round(dustbinValue)}%</div>
+              <div class="dustbin-alert-buttons">
+                <button class="dustbin-alert-btn dustbin-alert-btn-dismiss" id="dustbin-alert-dismiss">Dismiss</button>
+                <button class="dustbin-alert-btn dustbin-alert-btn-send" id="dustbin-alert-send">Schedule Collection</button>
+              </div>
+            </div>
+          `;
+          document.body.appendChild(alertDialog);
+          
+          // Add event listeners (only once when dialog is created)
+          document.getElementById('dustbin-alert-dismiss').addEventListener('click', () => {
+            closeDustbinAlertDialog();
+          });
+          
+          document.getElementById('dustbin-alert-send').addEventListener('click', () => {
+            sendDustbinCollectionRequest(dustbinValue);
+            closeDustbinAlertDialog();
+          });
+          
+          document.querySelector('.dustbin-alert-overlay').addEventListener('click', () => {
+            closeDustbinAlertDialog();
+          });
+          
+          // Close on Escape key
+          const escapeHandler = (e) => {
+            if (e.key === 'Escape' && alertDialog.classList.contains('active')) {
+              closeDustbinAlertDialog();
+              document.removeEventListener('keydown', escapeHandler);
+            }
+          };
+          document.addEventListener('keydown', escapeHandler);
+        } else {
+          // Update value if dialog already exists
+          const valueElement = alertDialog.querySelector('.dustbin-alert-value');
+          if (valueElement) {
+            valueElement.textContent = Math.round(dustbinValue) + '%';
+          }
+        }
+        
+        // Show dialog (always show, even if it was already shown)
+        alertDialog.classList.add('active');
+        document.body.style.overflow = 'hidden';
+      }
+      
+      // Close Dustbin Alert Dialog
+      function closeDustbinAlertDialog() {
+        const alertDialog = document.getElementById('dustbin-alert-dialog');
+        if (alertDialog) {
+          alertDialog.classList.remove('active');
+          document.body.style.overflow = '';
+        }
+      }
+      
+      // Send Dustbin Collection Request
+      function sendDustbinCollectionRequest(dustbinValue) {
+        // You can implement actual collection scheduling functionality here
+        alert(`✅ Waste collection scheduled for Raj Nagar ward\n\nAlert: Dustbin fill level at ${Math.round(dustbinValue)}%\n\nCollection team will be dispatched within 2 hours.`);
+        console.log(`Waste collection scheduled for Raj Nagar - Dustbin at ${dustbinValue}%`);
+      }
+      
+      // Add Dustbin Alert to Alert Logs
+      function addDustbinAlertToLogs(dustbinValue) {
+        const now = new Date();
+        const timeAgo = 'Just now';
+        
+        const newAlert = {
+          id: alertIdCounter++,
+          type: 'critical',
+          icon: '🗑️',
+          title: 'Dustbin Fill Alert - Raj Nagar',
+          description: `Smart dustbin in Raj Nagar ward has exceeded 80% capacity. Waste collection scheduled.`,
+          location: 'Raj Nagar',
+          time: timeAgo,
+          value: `${Math.round(dustbinValue)}%`
+        };
+        
+        // Add to beginning of array
+        alertLogs.unshift(newAlert);
+        
+        // Limit to 50 alerts max
+        if (alertLogs.length > 50) {
+          alertLogs.pop();
+        }
+        
+        // Update alert logs display
+        populateAlertLogs();
+      }
+      
+      // Show TDS Alert Dialog for KIET
+      function showTDSAlertDialog(tdsValue) {
+        // Play alert sound (always play, even if dialog exists)
+        playAlertSound();
+        
+        // Create or get alert dialog
+        let alertDialog = document.getElementById('tds-alert-dialog');
+        if (!alertDialog) {
+          alertDialog = document.createElement('div');
+          alertDialog.id = 'tds-alert-dialog';
+          alertDialog.className = 'tds-alert-dialog';
+          alertDialog.innerHTML = `
+            <div class="tds-alert-overlay"></div>
+            <div class="tds-alert-content">
+              <div class="tds-alert-icon">💧</div>
+              <div class="tds-alert-title">Critical TDS Alert - KIET</div>
+              <div class="tds-alert-message">
+                Total Dissolved Solids (TDS) has reached dangerous levels in KIET Group of Institutions. Immediate action required.
+              </div>
+              <div class="tds-alert-value">${Math.round(tdsValue)}</div>
+              <div class="tds-alert-buttons">
+                <button class="tds-alert-btn tds-alert-btn-dismiss" id="tds-alert-dismiss">Dismiss</button>
+                <button class="tds-alert-btn tds-alert-btn-send" id="tds-alert-send">Notify Ward</button>
+              </div>
+            </div>
+          `;
+          document.body.appendChild(alertDialog);
+          
+          // Add event listeners (only once when dialog is created)
+          document.getElementById('tds-alert-dismiss').addEventListener('click', () => {
+            closeTDSAlertDialog();
+          });
+          
+          document.getElementById('tds-alert-send').addEventListener('click', () => {
+            sendTDSMessageToWard(tdsValue);
+            closeTDSAlertDialog();
+          });
+          
+          document.querySelector('.tds-alert-overlay').addEventListener('click', () => {
+            closeTDSAlertDialog();
+          });
+          
+          // Close on Escape key
+          const escapeHandler = (e) => {
+            if (e.key === 'Escape' && alertDialog.classList.contains('active')) {
+              closeTDSAlertDialog();
+              document.removeEventListener('keydown', escapeHandler);
+            }
+          };
+          document.addEventListener('keydown', escapeHandler);
+        } else {
+          // Update value if dialog already exists
+          const valueElement = alertDialog.querySelector('.tds-alert-value');
+          if (valueElement) {
+            valueElement.textContent = Math.round(tdsValue);
+          }
+        }
+        
+        // Show dialog (always show, even if it was already shown)
+        alertDialog.classList.add('active');
+        document.body.style.overflow = 'hidden';
+      }
+      
+      // Close TDS Alert Dialog
+      function closeTDSAlertDialog() {
+        const alertDialog = document.getElementById('tds-alert-dialog');
+        if (alertDialog) {
+          alertDialog.classList.remove('active');
+          document.body.style.overflow = '';
+        }
+      }
+      
+      // Send TDS Message to Ward
+      function sendTDSMessageToWard(tdsValue) {
+        // You can implement actual messaging functionality here
+        alert(`✅ Message sent to KIET Group of Institutions\n\nAlert: Critical TDS level detected (${Math.round(tdsValue)} ppm)\n\nUrgent action required to address water quality issues.`);
+        console.log(`Message sent to KIET for TDS: ${tdsValue}`);
+      }
+      
+      // Add TDS Alert to Alert Logs
+      function addTDSAlertToLogs(tdsValue) {
+        const now = new Date();
+        const timeAgo = 'Just now';
+        
+        const newAlert = {
+          id: alertIdCounter++,
+          type: 'critical',
+          icon: '💧',
+          title: 'Critical TDS Alert - High Levels',
+          description: `Total Dissolved Solids (TDS) has reached dangerous level of ${Math.round(tdsValue)} ppm in KIET Group of Institutions. Immediate action required.`,
+          location: 'KIET Group of Institutions',
+          time: timeAgo,
+          value: `TDS: ${Math.round(tdsValue)} ppm`
+        };
+        
+        // Add to beginning of array
+        alertLogs.unshift(newAlert);
+        
+        // Limit to 50 alerts max
+        if (alertLogs.length > 50) {
+          alertLogs.pop();
+        }
+        
+        // Update alert logs display
+        populateAlertLogs();
+      }
+
+      // Load more button handler
+      document.getElementById('load-more-btn').addEventListener('click', loadMoreWards);
+
+      // Create commercial land tile element
+      function createCommercialLandTile(land, index) {
+        const tile = document.createElement('div');
+        
+        // Check if this tile should be active
+        // Disable Raj Nagar Business Center specifically
+        const isRajNagarBusinessCenter = /raj\s*nagar\s*business\s*cent(er|re)/i.test(land.name);
+        const isActive = !isRajNagarBusinessCenter && (land.name === 'KIET Group of Institutions');
+        const deactivatedClass = isActive ? '' : 'deactivated';
+        
+        tile.className = `ward-tile ${land.status} ${deactivatedClass}`;
+        tile.dataset.landId = land.id;
+        tile.dataset.landData = JSON.stringify(land);
+        
+        const aqiClass = land.aqi <= 30 ? 'good' : land.aqi <= 60 ? 'moderate' : 'poor';
+        // Derive cleanliness from score if not provided (as per last inspection)
+        const derivedCleanliness = Math.max(40, Math.min(100, Math.round(land.score)));
+        const cleanlinessClass = derivedCleanliness >= 80 ? 'good' : derivedCleanliness >= 60 ? 'moderate' : 'poor';
+        // Derive a simple Water Quality Index (0-100) from AQI and derived cleanliness
+        const waterQuality = Math.max(0, Math.min(100, 100 - land.aqi + Math.round((derivedCleanliness - 50) / 2)));
+        const waterClass = waterQuality >= 80 ? 'good' : waterQuality >= 60 ? 'moderate' : 'poor';
+        
+        tile.innerHTML = `
+          <div class="ward-tile-header">
+            <span class="ward-rank">#${index + 1}</span>
+            <span class="ward-name-tile">${land.name}</span>
+            <span class="ward-status-badge">${land.status}</span>
+          </div>
+          <div class="ward-params">
+            <div class="param-row">
+              <span class="param-label">AQI (PM2.5)</span>
+              <span class="param-value ${aqiClass}">${land.aqi}</span>
+            </div>
+            <div class="param-row">
+              <span class="param-label">Water Quality</span>
+              <span class="param-value ${waterClass}">${waterQuality}</span>
+            </div>
+            <div class="param-row">
+              <span class="param-label">Cleanliness (Last Inspection)</span>
+              <span class="param-value ${cleanlinessClass}">${derivedCleanliness}%</span>
+            </div>
+          </div>
+          <div class="ward-score">
+            <span class="score-label">Performance Score</span>
+            <span class="score-value">${land.score}</span>
+          </div>
+        `;
+
+        // Only allow clicks on active tiles
+        if (isActive) {
+          tile.addEventListener('click', () => openCommercialLandDetail(land));
+        }
+        
+        return tile;
+      }
+
+      // Populate commercial land tiles
+      function populateCommercialLandTiles() {
+        const grid = document.getElementById('commercial-land-grid');
+        const loadMoreBtn = document.getElementById('load-more-commercial-btn');
+        
+        // Clear existing tiles
+        const currentTiles = grid.querySelectorAll('.ward-tile');
+        currentTiles.forEach(tile => tile.remove());
+        
+        // Get commercial land to display
+        const landToShow = allCommercialLandData.slice(0, displayedCommercialCount);
+        
+        landToShow.forEach((land, index) => {
+          const tile = createCommercialLandTile(land, index);
+          grid.appendChild(tile);
+        });
+        
+        // Update load more button
+        if (displayedCommercialCount >= allCommercialLandData.length) {
+          loadMoreBtn.disabled = true;
+          loadMoreBtn.textContent = 'All commercial land loaded';
+        } else {
+          loadMoreBtn.disabled = false;
+          const remaining = allCommercialLandData.length - displayedCommercialCount;
+          loadMoreBtn.textContent = `Load More (${Math.min(commercialPerLoad, remaining)} plots)`;
+        }
+      }
+
+      // Load more commercial land handler
+      function loadMoreCommercialLand() {
+        displayedCommercialCount = Math.min(displayedCommercialCount + commercialPerLoad, allCommercialLandData.length);
+        populateCommercialLandTiles();
+        
+        // Scroll to newly loaded tiles
+        const grid = document.getElementById('commercial-land-grid');
+        const lastTile = grid.lastElementChild;
+        if (lastTile) {
+          lastTile.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+      }
+
+      // Open commercial land detail modal
+      function openCommercialLandDetail(land) {
+        const modal = document.getElementById('ward-detail-modal');
+        const content = document.getElementById('ward-detail-content');
+        
+        const aqiClass = land.aqi <= 30 ? 'good' : land.aqi <= 60 ? 'moderate' : 'poor';
+        
+        const derivedCleanliness = Math.max(40, Math.min(100, Math.round(land.score)));
+        const cleanClass = derivedCleanliness >= 80 ? 'good' : derivedCleanliness >= 60 ? 'moderate' : 'poor';
+        const waterQuality = Math.max(0, Math.min(100, 100 - land.aqi + Math.round((derivedCleanliness - 50) / 2)));
+        const waterClass = waterQuality >= 80 ? 'good' : waterQuality >= 60 ? 'moderate' : 'poor';
+
+        content.innerHTML = `
+          <div class="ward-modal-header">
+            <h3>${land.name}</h3>
+            <div class="ward-id-detail">Commercial Land ID: ${land.id}</div>
+          </div>
+          <div class="ward-detail-grid">
+            <div class="detail-param-card">
+              <div class="detail-param-label">Performance Score</div>
+              <div class="detail-param-value" style="color: ${land.status === 'good' ? 'var(--good)' : land.status === 'moderate' ? 'var(--moderate)' : 'var(--poor)'};">${land.score}</div>
+            </div>
+            <div class="detail-param-card">
+              <div class="detail-param-label">Status</div>
+              <div class="detail-param-value" style="color: ${land.status === 'good' ? 'var(--good)' : land.status === 'moderate' ? 'var(--moderate)' : 'var(--poor)'}; text-transform: uppercase; font-size: 18px;">${land.status}</div>
+            </div>
+            <div class="detail-param-card">
+              <div class="detail-param-label">AQI (PM2.5)</div>
+              <div class="detail-param-value ${aqiClass}">${land.aqi} µg/m³</div>
+            </div>
+            <div class="detail-param-card">
+              <div class="detail-param-label">Water Quality</div>
+              <div class="detail-param-value ${waterClass}">${waterQuality}</div>
+            </div>
+            <div class="detail-param-card">
+              <div class="detail-param-label">Cleanliness (Last Inspection)</div>
+              <div class="detail-param-value ${cleanClass}">${derivedCleanliness}%</div>
+            </div>
+          </div>
+          <div class="graph-card" style="margin-top: 12px;">
+            <div class="graph-card-header">
+              <div class="graph-card-title">Trends (Last 7)</div>
+            </div>
+            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px;">
+              <canvas id="land-aqi-chart" height="140"></canvas>
+              <canvas id="land-water-chart" height="140"></canvas>
+              <canvas id="land-clean-chart" height="140"></canvas>
+            </div>
+          </div>
+          <div class="alert-logs-section" style="margin-top: 16px;">
+            <div class="alert-logs-header">
+              <h3>Alert Logs for ${land.name}</h3>
+              <p>Recent alerts scoped to this location</p>
+            </div>
+            <div class="alert-logs-list" id="land-alerts-list"></div>
+          </div>
+        `;
+        
+        modal.classList.add('active');
+        modal.setAttribute('aria-hidden', 'false');
+        document.body.style.overflow = 'hidden';
+        // Render land charts
+        (function(){
+          const aqiTrend = [land.aqi + 3, land.aqi - 2, land.aqi - 5, land.aqi - 1, land.aqi - 3, land.aqi - 2, land.aqi];
+          const waterTrend = aqiTrend.map(v => Math.max(0, Math.min(100, 100 - v + Math.round((derivedCleanliness - 50) / 2))));
+          const cleanTrend = [derivedCleanliness - 5, derivedCleanliness - 3, derivedCleanliness - 2, derivedCleanliness - 1, derivedCleanliness, derivedCleanliness - 1, derivedCleanliness];
+          const aqiCanvas = document.getElementById('land-aqi-chart');
+          const waterCanvas = document.getElementById('land-water-chart');
+          const cleanCanvas = document.getElementById('land-clean-chart');
+          if (aqiCanvas) { aqiCanvas.width = aqiCanvas.offsetWidth || 240; drawLineChart(aqiCanvas, aqiTrend, '#ff6b6b', 'rgba(255,107,107,0.1)'); }
+          if (waterCanvas) { waterCanvas.width = waterCanvas.offsetWidth || 240; drawLineChart(waterCanvas, waterTrend, '#18e0b5', 'rgba(24,224,181,0.1)'); }
+          if (cleanCanvas) { cleanCanvas.width = cleanCanvas.offsetWidth || 240; drawBarChart(cleanCanvas, cleanTrend, '#43ff88'); }
+
+          // Populate location-specific alerts
+          const landAlertsList = document.getElementById('land-alerts-list');
+          if (landAlertsList) {
+            const filtered = alertLogs.filter(a => (a.location || '').toLowerCase().includes(land.name.toLowerCase()));
+            if (filtered.length === 0) {
+              landAlertsList.innerHTML = '<div style="color: var(--muted); font-size: 13px;">No alerts for this location</div>';
+            } else {
+              landAlertsList.innerHTML = '';
+              filtered.forEach(alert => {
+                const el = document.createElement('div');
+                el.className = `alert-log-item ${alert.type}`;
+                el.innerHTML = `
+                  <div class=\"alert-log-icon\">${alert.icon}</div>
+                  <div class=\"alert-log-content\">
+                    <div class=\"alert-log-title\">${alert.title}</div>
+                    <div class=\"alert-log-description\">${alert.description}</div>
+                    <div class=\"alert-log-meta\">
+                      <div class=\"alert-log-location\"><span>📍</span><span>${alert.location}</span></div>
+                      <div class=\"alert-log-time\"><span>🕐</span><span>${alert.time}</span></div>
+                      <div style=\"margin-left: auto; font-weight: 600; color: var(--text);\">${alert.value || ''}</div>
+                    </div>
+                  </div>`;
+                landAlertsList.appendChild(el);
+              });
+            }
+          }
+        })();
+      }
+
+      // Initialize commercial land tiles
+      populateCommercialLandTiles();
+
+      // Load more commercial land button handler
+      document.getElementById('load-more-commercial-btn').addEventListener('click', loadMoreCommercialLand);
+
+      // Cleanliness Leaderboard Functions
+      function loadLeaderboard() {
+        const stored = localStorage.getItem('inspectionLeaderboard');
+        if (stored) {
+          try {
+            return JSON.parse(stored);
+          } catch (e) {
+            console.error('Error loading leaderboard:', e);
+          }
+        }
+        return {
+          wards: [],
+          commercial: []
+        };
+      }
+
+      function getTrophyEmoji(rank) {
+        if (rank === 1) return '🥇';
+        if (rank === 2) return '🥈';
+        if (rank === 3) return '🥉';
+        return '';
+      }
+
+      function renderLeaderboard(tab) {
+        const leaderboard = loadLeaderboard();
+        const data = tab === 'wards' ? leaderboard.wards : leaderboard.commercial;
+        const content = document.getElementById('leaderboard-content-main');
+        
+        // Update active tab
+        document.querySelectorAll('.leaderboard-tab-main').forEach(btn => {
+          btn.classList.remove('active');
+          if (btn.dataset.tab === tab) {
+            btn.classList.add('active');
+          }
+        });
+        
+        if (!data || data.length === 0) {
+          content.innerHTML = `
+            <div class="leaderboard-empty-main">
+              <div class="leaderboard-empty-icon-main">📊</div>
+              <div>No ${tab === 'wards' ? 'ward' : 'commercial land'} inspections yet</div>
+              <div style="font-size: 12px; margin-top: 8px; opacity: 0.7;">Complete drone inspections to see rankings</div>
+            </div>
+          `;
+          return;
+        }
+        
+        // Show top 10
+        const topItems = data.slice(0, 10);
+        
+        content.innerHTML = `
+          <div class="leaderboard-stair-main">
+            ${topItems.map((item, index) => {
+              const rank = index + 1;
+              const trophy = getTrophyEmoji(rank);
+              const scoreClass = item.rating || (item.score >= 90 ? 'excellent' : item.score >= 70 ? 'good' : item.score >= 50 ? 'moderate' : 'poor');
+              const rankColor = rank <= 3 ? 'var(--accent)' : 'var(--muted)';
+              
+              return `
+                <div class="leaderboard-item-main leaderboard-rank-${rank}-main">
+                  <div class="leaderboard-rank-main" style="color: ${rankColor};">${rank}</div>
+                  <div class="leaderboard-trophy-main">${trophy}</div>
+                  <div class="leaderboard-info-main">
+                    <div class="leaderboard-name-main">${item.name}</div>
+                    <div class="leaderboard-details-main">
+                      <span>Score: ${item.score}</span>
+                      <span>•</span>
+                      <span>${item.rating || 'N/A'}</span>
+                    </div>
+                  </div>
+                  <div class="leaderboard-score-main ${scoreClass}">${item.score}</div>
+                </div>
+              `;
+            }).join('')}
+          </div>
+        `;
+      }
+
+      // Initialize leaderboard tabs
+      function initLeaderboardTabs() {
+        document.querySelectorAll('.leaderboard-tab-main').forEach(btn => {
+          btn.addEventListener('click', () => {
+            const tab = btn.dataset.tab;
+            renderLeaderboard(tab);
+          });
+        });
+        
+        // Render initial leaderboard (wards)
+        renderLeaderboard('wards');
+      }
+
+      // Initialize leaderboard on page load
+      initLeaderboardTabs();
+
+      // Initialize map centered on Ghaziabad
+      const map = L.map('city-map').setView([28.6692, 77.4538], 12);
+
+      // Add OpenStreetMap tiles with dark theme
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap contributors',
+        maxZoom: 19
+      }).addTo(map);
+
+      // Ward location mapping - coordinates adjusted to match OpenStreetMap
+      // All coordinates within visible map bounds: lat [28.60-28.72], lng [77.38-77.52]
+      const wardLocations = {
+        // Vasundhara area (east, near Delhi border)
+        'Vasundhara I': { center: [28.6592, 77.3850], size: 0.012 },
+        'Vasundhara II': { center: [28.6662, 77.3920], size: 0.012 },
+        'Vasundhara III': { center: [28.6732, 77.3990], size: 0.012 },
+        
+        // Vaishali area (east, adjoining Delhi) - adjusted to visible area
+        'Vaishali I': { center: [28.6525, 77.3850], size: 0.012 },
+        'Vaishali II': { center: [28.6595, 77.3920], size: 0.012 },
+        'Vaishali III': { center: [28.6665, 77.3990], size: 0.012 },
+        
+        // Indirapuram area (east)
+        'Gyankhand Indirapuram': { center: [28.6408, 77.3898], size: 0.015 },
+        'Shipra Suncity Indirapuram': { center: [28.6408, 77.3828], size: 0.015 },
+        'Vaibhav Khand I': { center: [28.6478, 77.3968], size: 0.012 },
+        'Ahinsa Khand': { center: [28.6408, 77.3898], size: 0.012 },
+        'Shakti Khand': { center: [28.6478, 77.4028], size: 0.012 },
+        'Abhay Khand': { center: [28.6408, 77.3958], size: 0.012 },
+        
+        // Vijay Nagar area (central Ghaziabad)
+        'Old Vijay Nagar': { center: [28.6725, 77.4325], size: 0.010 },
+        'New Vijay Nagar': { center: [28.6795, 77.4395], size: 0.010 },
+        'Vijay Nagar Sec 11 E Block': { center: [28.6725, 77.4465], size: 0.010 },
+        
+        // Raj Nagar / Rajendra Nagar (central-west)
+        'Raj Nagar': { center: [28.6665, 77.4525], size: 0.012 },
+        'Rajendra Nagar sec 2': { center: [28.6595, 77.4455], size: 0.010 },
+        'Rajendra Nagar Sec 5': { center: [28.6595, 77.4595], size: 0.010 },
+        
+        // Lajpat Nagar (central)
+        'Lajpat Nagar I': { center: [28.6805, 77.4535], size: 0.010 },
+        'Lajpat Nagar II': { center: [28.6805, 77.4605], size: 0.010 },
+        
+        // Shalimar Garden (west) - adjusted to visible area
+        'Shalimar Garden': { center: [28.6735, 77.4745], size: 0.012 },
+        'Shalimar Garden Extension': { center: [28.6735, 77.4805], size: 0.012 },
+        'Shalimar Garden Extension I': { center: [28.6665, 77.4805], size: 0.012 },
+        
+        // Kaushambi (east) - adjusted to visible area
+        'Kaushambi': { center: [28.6475, 77.3885], size: 0.012 },
+        
+        // Sahibabad (north-west) - adjusted to visible area
+        'Sahibabad': { center: [28.6935, 77.4735], size: 0.015 },
+        'Bhopura': { center: [28.6935, 77.4805], size: 0.012 },
+        'Bhowapur': { center: [28.6935, 77.4735], size: 0.012 },
+        
+        // Karhera (south-west) - adjusted to visible area
+        'Karhera': { center: [28.6125, 77.4595], size: 0.012 },
+        'Makanpur': { center: [28.6125, 77.4665], size: 0.012 },
+        
+        // Nehru Nagar (central)
+        'Nehru Nagar II': { center: [28.6805, 77.4395], size: 0.010 },
+        'Nehru Nagar III': { center: [28.6805, 77.4465], size: 0.010 },
+        
+        // Krishna Nagar (central)
+        'Krishna Nagar': { center: [28.6735, 77.4195], size: 0.010 },
+        'Bagu Krishna Nagar': { center: [28.6735, 77.4125], size: 0.010 },
+        
+        // Shyam Park (central-west)
+        'Shyam Park Main': { center: [28.6665, 77.4395], size: 0.012 },
+        'Shyam Park Extension': { center: [28.6665, 77.4325], size: 0.012 },
+        
+        // Pratap Vihar (east)
+        'Pratap Vihar Sector 11': { center: [28.6595, 77.3865], size: 0.012 },
+        
+        // Chiranjeev Vihar (east)
+        'Chiranjeev Vihar Avantika': { center: [28.6665, 77.3865], size: 0.012 },
+        
+        // Gandhi Nagar (south)
+        'Gandhi Nagar Turab Nagar': { center: [28.6255, 77.4525], size: 0.012 },
+        
+        // Kavi Nagar area (south) - adjusted to visible area
+        'Kavi Nagar': { center: [28.6105, 77.4525], size: 0.010 },
+        'Kaila Islam Nagar': { center: [28.6105, 77.4455], size: 0.010 },
+        'Kaila Bhatta': { center: [28.6105, 77.4385], size: 0.010 },
+        'Prem Nagar Kaila': { center: [28.6105, 77.4315], size: 0.010 },
+        
+        // Surya Nagar (south)
+        'Surya Nagar': { center: [28.6115, 77.4525], size: 0.010 },
+        
+        // Ramprastha (east)
+        'Ramprastha': { center: [28.6595, 77.3995], size: 0.012 },
+        
+        // Jawahar Park (central)
+        'Jawahar Park': { center: [28.6735, 77.4605], size: 0.012 },
+        
+        // Shivpuri (south-central)
+        'Shivpuri': { center: [28.6255, 77.4395], size: 0.012 },
+        
+        // Chandrapuri (south-central)
+        'Chandrapuri': { center: [28.6325, 77.4395], size: 0.012 },
+        
+        // Rahul Vihar (central)
+        'Rahul Vihar': { center: [28.6805, 77.4195], size: 0.010 },
+        
+        // Brij Vihar (central)
+        'Brij Vihar': { center: [28.6735, 77.4675], size: 0.010 },
+        
+        // Lohiya Nagar (central)
+        'Lohiya Nagar': { center: [28.6805, 77.4675], size: 0.010 },
+        
+        // Janakpuri (central)
+        'Janakpuri': { center: [28.6875, 77.4605], size: 0.010 },
+        
+        // Sanjay Nagar (central-west)
+        'Sanjay Colony': { center: [28.6665, 77.4745], size: 0.010 },
+        'Sanjay Nagar II': { center: [28.6665, 77.4805], size: 0.010 },
+        'Kamla Nehru Nagar Sanjay Nagar I': { center: [28.6665, 77.4675], size: 0.012 },
+        
+        // Shahid Nagar (south)
+        'Shahid Nagar I': { center: [28.6115, 77.4325], size: 0.010 },
+        'Shahid Nagar II': { center: [28.6115, 77.4255], size: 0.010 },
+        
+        // Nandgram (south-west)
+        'Nandgram Deen Dayal Puri': { center: [28.6185, 77.4745], size: 0.012 },
+        'Nandgram Sihani': { center: [28.6185, 77.4805], size: 0.012 },
+        'Nandgram Mariyam Nagar': { center: [28.6255, 77.4745], size: 0.012 },
+        
+        // Other areas - distributed across Ghaziabad
+        'Mata Colony': { center: [28.6875, 77.4395], size: 0.010 },
+        'Vihar': { center: [28.6875, 77.4325], size: 0.010 },
+        'Deen Dayal Puri': { center: [28.6875, 77.4255], size: 0.010 },
+        'Bihari Pura': { center: [28.6935, 77.4395], size: 0.010 },
+        'Sibbanpura': { center: [28.6935, 77.4325], size: 0.010 },
+        'DLF Colony': { center: [28.6935, 77.4255], size: 0.010 },
+        'Kalka Garhi': { center: [28.6875, 77.4185], size: 0.010 },
+        'Ghukna': { center: [28.6935, 77.4185], size: 0.010 },
+        'Charan Singh Colony': { center: [28.6805, 77.4185], size: 0.010 },
+        'Morta': { center: [28.6875, 77.4115], size: 0.010 },
+        'Seva Nagar': { center: [28.6935, 77.4115], size: 0.010 },
+        'Shashtri Nagar Razapur': { center: [28.6805, 77.4115], size: 0.010 },
+        'Patel Nagar Mukand Nagar': { center: [28.6735, 77.4115], size: 0.010 },
+        'Daulatpura': { center: [28.6665, 77.4185], size: 0.010 },
+        'Kailash Nagar': { center: [28.6595, 77.4185], size: 0.010 },
+        'Mehrauli': { center: [28.6525, 77.4185], size: 0.010 },
+        'Ambedkar Nagar': { center: [28.6455, 77.4185], size: 0.010 },
+        'Madhopur': { center: [28.6255, 77.4185], size: 0.010 },
+        'Dundahera': { center: [28.6185, 77.4185], size: 0.010 },
+        'Rajiv Colony': { center: [28.6105, 77.4185], size: 0.010 },
+        'Kuri': { center: [28.6105, 77.4115], size: 0.010 },
+        'Sadarpur': { center: [28.6115, 77.4115], size: 0.010 },
+        'Sarai Nazar Ali': { center: [28.6185, 77.4115], size: 0.010 },
+        'Akbarpur': { center: [28.6255, 77.4115], size: 0.010 },
+        'Prahalad Garhi': { center: [28.6325, 77.4115], size: 0.010 },
+        'Arthala': { center: [28.6395, 77.4115], size: 0.010 },
+        'Nasirpur': { center: [28.6465, 77.4115], size: 0.010 },
+        'Maharajpur': { center: [28.6535, 77.4115], size: 0.010 },
+        'Shahpur Bamheta': { center: [28.6605, 77.4115], size: 0.010 },
+        'Kadkad Model': { center: [28.6875, 77.4045], size: 0.010 },
+        'Guldhar': { center: [28.6935, 77.4045], size: 0.010 },
+        'Shahtri Nagar Mahendra Enclave': { center: [28.6805, 77.4045], size: 0.010 },
+        'Mirzapur': { center: [28.6735, 77.4045], size: 0.010 },
+        'Sadiq Nagar': { center: [28.6665, 77.3975], size: 0.010 },
+        'Arya Nagar Kotgaon': { center: [28.6595, 77.3905], size: 0.010 },
+        'Raispur': { center: [28.6525, 77.3905], size: 0.010 },
+        'Makanpur': { center: [28.6325, 77.3905], size: 0.010 },
+        'Govindpuram Harsaon': { center: [28.6255, 77.3905], size: 0.012 },
+        'Pasaunda': { center: [28.6185, 77.3905], size: 0.010 },
+        'Garima Garden': { center: [28.6255, 77.3835], size: 0.010 },
+        'Vivekanand Nagar Jivan Vihar': { center: [28.6325, 77.3835], size: 0.012 },
+        'Mausam Vihar': { center: [28.6395, 77.3835], size: 0.010 }
+      };
+
+      // Generate ward polygon coordinates based on actual location
+      function generateWardCoordinates(wardId, allWardsList) {
+        const ward = allWardsList.find(w => w.id === wardId);
+        if (!ward) return null;
+
+        const location = wardLocations[ward.name];
+        
+        if (location) {
+          // Use actual location mapping
+          const { center, size } = location;
+          const halfSize = size / 2;
+          return [
+            [center[0] - halfSize, center[1] - halfSize],
+            [center[0] + halfSize, center[1] - halfSize],
+            [center[0] + halfSize, center[1] + halfSize],
+            [center[0] - halfSize, center[1] + halfSize]
+          ];
+        } else {
+          // Fallback: generate based on ward ID in a grid pattern
+          // Adjusted to match Ghaziabad map view (centered around 28.6692, 77.4538)
+          const rows = 10;
+          const cols = 10;
+          const row = Math.floor((wardId - 1) / cols);
+          const col = (wardId - 1) % cols;
+          
+          // Bounding box for Ghaziabad visible area
+          const latMin = 28.60;
+          const latMax = 28.72;
+          const lngMin = 77.38;
+          const lngMax = 77.52;
+          
+          const latStep = (latMax - latMin) / rows;
+          const lngStep = (lngMax - lngMin) / cols;
+          
+          const centerLat = latMin + (row + 0.5) * latStep;
+          const centerLng = lngMin + (col + 0.5) * lngStep;
+          const halfSize = 0.005; // Small rectangle size
+          
+          return [
+            [centerLat - halfSize, centerLng - halfSize],
+            [centerLat + halfSize, centerLng - halfSize],
+            [centerLat + halfSize, centerLng + halfSize],
+            [centerLat - halfSize, centerLng + halfSize]
+          ];
+        }
+      }
+
+      // Get performance data for a ward
+      function getWardPerformance(wardId) {
+        const wardData = allWardsData.find(w => w.id === wardId);
+        if (wardData) {
+          return {
+            score: wardData.score,
+            status: wardData.status,
+            aqi: wardData.aqi,
+            cleanliness: wardData.cleanliness,
+            nodes: wardData.nodes,
+            alerts: wardData.alerts
+          };
+        }
+        // Default performance for wards not in top 10
+        const score = 45 + Math.random() * 50; // Random score between 45-95
+        return {
+          score: Math.round(score),
+          status: score >= 85 ? 'good' : score >= 60 ? 'moderate' : 'poor',
+          aqi: 20 + Math.random() * 60,
+          cleanliness: 40 + Math.random() * 60,
+          nodes: 70 + Math.random() * 80,
+          alerts: Math.floor(Math.random() * 15)
+        };
+      }
+
+      // Color mapping
+      const wardColors = {
+        good: { fill: 'rgba(67,255,136,0.3)', border: '#43ff88', borderWidth: 2 },
+        moderate: { fill: 'rgba(255,200,87,0.3)', border: '#ffc857', borderWidth: 2 },
+        poor: { fill: 'rgba(255,107,107,0.3)', border: '#ff6b6b', borderWidth: 2 }
+      };
+
+      // Add all 100 ward polygons to the map
+      allWards.forEach(ward => {
+        const coordinates = generateWardCoordinates(ward.id, allWards);
+        if (!coordinates) return;
+
+        const performance = getWardPerformance(ward.id);
+        const color = wardColors[performance.status];
+        
+        const polygon = L.polygon(coordinates, {
+          color: color.border,
+          weight: 2,
+          fillColor: color.fill,
+          fillOpacity: 0.4,
+          className: `ward-${performance.status}`
+        }).addTo(map);
+
+        polygon.on('click', () => {
+          const aqiClass = performance.aqi <= 30 ? 'good' : performance.aqi <= 60 ? 'moderate' : 'poor';
+          alert(`${ward.name} (Ward ${ward.id})\nPerformance Score: ${performance.score}\nStatus: ${performance.status.toUpperCase()}\nAQI: ${Math.round(performance.aqi)}\nCleanliness: ${Math.round(performance.cleanliness)}%\nActive Nodes: ${Math.round(performance.nodes)}\nAlerts: ${performance.alerts}\n\nClick to view detailed analytics.`);
+        });
+
+        polygon.bindPopup(`
+          <div style="font-family: 'Outfit', sans-serif; min-width: 200px;">
+            <strong style="font-size: 16px; color: ${color.border};">${ward.name}</strong><br>
+            <span style="color: var(--muted); font-size: 12px;">Ward ID: ${ward.id}</span><br>
+            <span style="color: var(--muted);">Score: <strong style="color: ${color.border};">${performance.score}</strong></span><br>
+            <span style="color: var(--muted);">Status: <strong style="color: ${color.border};">${performance.status.toUpperCase()}</strong></span><br>
+            <span style="color: var(--muted); font-size: 12px;">AQI: ${Math.round(performance.aqi)} | Cleanliness: ${Math.round(performance.cleanliness)}%</span>
+          </div>
+        `);
+      });
+
+      // KIET Group of Institutions location
+      // Coordinates: 28.7532° N, 77.4971° E
+      const kietCenter = [28.7532, 77.4971];
+      const kietSize = 0.005; // Rectangle size in degrees
+      const halfSize = kietSize / 2;
+      
+      const kietCoordinates = [
+        [kietCenter[0] - halfSize, kietCenter[1] - halfSize], // Southwest corner
+        [kietCenter[0] + halfSize, kietCenter[1] - halfSize], // Southeast corner
+        [kietCenter[0] + halfSize, kietCenter[1] + halfSize], // Northeast corner
+        [kietCenter[0] - halfSize, kietCenter[1] + halfSize]  // Northwest corner
+      ];
+
+      // Add KIET rectangle
+      const kietPolygon = L.polygon(kietCoordinates, {
+        color: '#18e0b5',
+        weight: 3,
+        fillColor: '#18e0b5',
+        fillOpacity: 0.3,
+        className: 'kiet-institution'
+      }).addTo(map);
+
+      kietPolygon.bindPopup(`
+        <div style="font-family: 'Outfit', sans-serif; min-width: 200px;">
+          <strong style="font-size: 16px; color: #18e0b5;">KIET Group of Institutions</strong><br>
+          <span style="color: var(--muted); font-size: 12px;">Meerut Road, Ghaziabad</span>
+        </div>
+      `);
+
+      // AQI Sensor at KIET
+      const aqiSensorData = {
+        id: 'AQI-KIET-001',
+        location: 'KIET Group of Institutions',
+        aqi: 28,
+        pm25: 28,
+        pm10: 45,
+        batteryLevel: 85,
+        chargingStatus: 'charging',
+        lastUpdate: new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' }),
+        temperature: 24.5,
+        humidity: 65,
+        status: 'online'
+      };
+
+      // Create AQI sensor icon
+      function createAQISensorIcon(batteryLevel) {
+        const batteryColor = batteryLevel > 60 ? '#43ff88' : batteryLevel > 30 ? '#ffc857' : '#ff6b6b';
+        return L.divIcon({
+          className: 'custom-aqi-sensor-icon',
+          html: `<div style="
+            width: 18px;
+            height: 18px;
+            background: ${batteryColor};
+            border: 1.5px solid ${batteryColor};
+            border-radius: 50%;
+            box-shadow: 0 0 12px rgba(67,255,136,0.6);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 9px;
+            font-weight: 700;
+            color: #0b1220;
+          ">AQI</div>`,
+          iconSize: [18, 18],
+          iconAnchor: [9, 9]
+        });
+      }
+
+      // Note: AQI sensor at KIET removed - will be replaced with water quality node
+
+      // Create small minimalist AQI sensor icon
+      function createSmallAQIIcon() {
+        return L.divIcon({
+          className: 'small-aqi-icon',
+          html: `<div style="
+            width: 8px;
+            height: 8px;
+            background: #18e0b5;
+            border: 1px solid #18e0b5;
+            border-radius: 50%;
+            box-shadow: 0 0 6px rgba(24,224,181,0.5);
+            cursor: pointer;
+          "></div>`,
+          iconSize: [8, 8],
+          iconAnchor: [4, 4]
+        });
+      }
+
+      // Create small minimalist dustbin icon
+      function createSmallDustbinIcon(fillLevel) {
+        const color = fillLevel > 80 ? '#ff6b6b' : fillLevel > 50 ? '#ffc857' : '#43ff88';
+        return L.divIcon({
+          className: 'small-dustbin-icon',
+          html: `<div style="
+            width: 12px;
+            height: 12px;
+            position: relative;
+            cursor: pointer;
+          ">
+            <div style="
+              width: 10px;
+              height: 8px;
+              background: ${color};
+              border: 1px solid ${color};
+              border-radius: 0 0 2px 2px;
+              box-shadow: 0 0 6px ${color}40;
+              margin: 0 auto;
+              position: relative;
+            ">
+              <div style="
+                position: absolute;
+                top: -3px;
+                left: 50%;
+                transform: translateX(-50%);
+                width: 8px;
+                height: 2px;
+                background: ${color};
+                border-radius: 1px;
+              "></div>
+            </div>
+          </div>`,
+          iconSize: [12, 12],
+          iconAnchor: [6, 10]
+        });
+      }
+
+      // Create electricity theft node icon
+      function createElectricityTheftIcon() {
+        return L.divIcon({
+          className: 'electricity-theft-icon',
+          html: `<div style="
+            width: 10px;
+            height: 10px;
+            background: #ff6b6b;
+            border: 1px solid #ff6b6b;
+            border-radius: 50%;
+            box-shadow: 0 0 8px rgba(255,107,107,0.6);
+            cursor: pointer;
+            position: relative;
+          ">
+            <div style="
+              position: absolute;
+              top: 50%;
+              left: 50%;
+              transform: translate(-50%, -50%);
+              width: 4px;
+              height: 4px;
+              background: #fff;
+              border-radius: 50%;
+            "></div>
+          </div>`,
+          iconSize: [10, 10],
+          iconAnchor: [5, 5]
+        });
+      }
+
+      // Create water quality node icon
+      function createWaterQualityIcon() {
+        return L.divIcon({
+          className: 'water-quality-icon',
+          html: `<div style="
+            width: 10px;
+            height: 10px;
+            background: #18e0b5;
+            border: 1px solid #18e0b5;
+            border-radius: 50%;
+            box-shadow: 0 0 8px rgba(24,224,181,0.6);
+            cursor: pointer;
+            position: relative;
+          ">
+            <div style="
+              position: absolute;
+              top: 50%;
+              left: 50%;
+              transform: translate(-50%, -50%);
+              width: 0;
+              height: 0;
+              border-left: 3px solid transparent;
+              border-right: 3px solid transparent;
+              border-bottom: 4px solid #fff;
+            "></div>
+          </div>`,
+          iconSize: [10, 10],
+          iconAnchor: [5, 5]
+        });
+      }
+
+      // Add only 3 specific nodes as requested
+      // 1. AQI/Electricity theft node in Raj Nagar
+      const rajNagarWard = allWards.find(w => w.name === 'Raj Nagar');
+      if (rajNagarWard) {
+        const rajNagarCoords = generateWardCoordinates(rajNagarWard.id, allWards);
+        if (rajNagarCoords) {
+          const centerLat = (rajNagarCoords[0][0] + rajNagarCoords[2][0]) / 2;
+          const centerLng = (rajNagarCoords[0][1] + rajNagarCoords[2][1]) / 2;
+          
+          // AQI/Electricity theft node (combined node)
+          const aqiElectricityIcon = createSmallAQIIcon();
+          const aqiElectricityMarker = L.marker([centerLat + 0.002, centerLng - 0.001], { icon: aqiElectricityIcon }).addTo(map);
+          aqiElectricityMarker.bindPopup(`
+            <div style="font-family: 'Outfit', sans-serif; font-size: 12px;">
+              <strong>AQI & Electricity Theft Sensor</strong><br>
+              <span style="color: var(--muted);">Ward: Raj Nagar</span><br>
+              <span style="color: var(--good);">Status: Active</span>
+            </div>
+          `);
+          
+          // Dustbin node in Raj Nagar
+          const dustbinIcon = createSmallDustbinIcon(45);
+          const dustbinMarker = L.marker([centerLat - 0.002, centerLng + 0.001], { icon: dustbinIcon }).addTo(map);
+          dustbinMarker.bindPopup(`
+            <div style="font-family: 'Outfit', sans-serif; font-size: 12px;">
+              <strong>Smart Dustbin</strong><br>
+              <span style="color: var(--muted);">Ward: Raj Nagar</span><br>
+              <span style="color: var(--good);">Fill Level: 45%</span>
+            </div>
+          `);
+        }
+      }
+
+      // 2. Water quality node at KIET
+      const waterQualityIcon = createWaterQualityIcon();
+      const waterQualityMarker = L.marker([28.7532, 77.4971], { icon: waterQualityIcon }).addTo(map);
+      waterQualityMarker.bindPopup(`
+        <div style="font-family: 'Outfit', sans-serif; font-size: 12px;">
+          <strong>Water Quality Sensor</strong><br>
+          <span style="color: var(--muted);">Location: KIET Group of Institutions</span><br>
+          <span style="color: var(--good);">Status: Active</span>
+        </div>
+      `);
+      
+      // Global water quality data for KIET
+      let kietWaterQualityData = {
+        id: 'WQ-KIET-001',
+        location: 'KIET Group of Institutions',
+        ph: 7.2,
+        tds: 180,
+        turbidity: 0.8,
+        chlorine: 0.5,
+        batteryLevel: 92,
+        chargingStatus: 'charging',
+        lastUpdate: new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' }),
+        status: 'online'
+      };
+      
+      // Function to update water quality marker popup
+      function updateWaterQualityPopup() {
+        const tdsClass = kietWaterQualityData.tds <= 500 ? 'good' : kietWaterQualityData.tds <= 1000 ? 'moderate' : 'poor';
+        waterQualityMarker.setPopupContent(`
+          <div style="font-family: 'Outfit', sans-serif; font-size: 12px;">
+            <strong>Water Quality Sensor</strong><br>
+            <span style="color: var(--muted);">Location: KIET Group of Institutions</span><br>
+            <span style="color: var(--${tdsClass});">TDS: ${kietWaterQualityData.tds} ppm</span><br>
+            <span style="color: var(--good);">Status: Active</span>
+          </div>
+        `);
+      }
+      
+      // Initialize popup
+      updateWaterQualityPopup();
+      
+      // Click handler for water quality node
+      waterQualityMarker.on('click', () => {
+        // Update timestamp before opening
+        kietWaterQualityData.lastUpdate = new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' });
+        openSensorPanel(kietWaterQualityData);
+      });
+      
+      // Store reference to current sensor panel data
+      let currentSensorData = null;
+
+      // Open sensor side panel
+      function openSensorPanel(sensorData) {
+        const panel = document.getElementById('sensor-side-panel');
+        const content = document.getElementById('sensor-panel-content');
+        
+        // Store current sensor data for updates
+        currentSensorData = sensorData;
+        
+        // Check if it's AQI sensor or water quality sensor
+        const isWaterQuality = sensorData.ph !== undefined;
+        
+        let contentHTML = `
+          <div class="sensor-info-card">
+            <div class="sensor-info-label">Sensor ID</div>
+            <div class="sensor-info-value">${sensorData.id}</div>
+          </div>
+          <div class="sensor-info-card">
+            <div class="sensor-info-label">Location</div>
+            <div class="sensor-info-value" style="font-size: 16px;">${sensorData.location}</div>
+          </div>
+        `;
+        
+        if (isWaterQuality) {
+          // Water quality sensor data
+          const phClass = sensorData.ph >= 6.5 && sensorData.ph <= 8.5 ? 'good' : 'moderate';
+          const tdsClass = sensorData.tds <= 500 ? 'good' : sensorData.tds <= 1000 ? 'moderate' : 'poor';
+          const batteryClass = sensorData.batteryLevel > 60 ? 'good' : sensorData.batteryLevel > 30 ? 'moderate' : 'poor';
+          const chargingClass = sensorData.chargingStatus === 'charging' ? 'charging' : 
+                               sensorData.batteryLevel > 30 ? 'low' : 'critical';
+          
+          contentHTML += `
+            <div class="sensor-info-card">
+              <div class="sensor-info-label">pH Level</div>
+              <div class="sensor-info-value ${phClass}">${sensorData.ph}</div>
+            </div>
+            <div class="sensor-info-card">
+              <div class="sensor-info-label">TDS (Total Dissolved Solids)</div>
+              <div class="sensor-info-value ${tdsClass}">${sensorData.tds} ppm</div>
+            </div>
+            <div class="sensor-info-card">
+              <div class="sensor-info-label">Turbidity</div>
+              <div class="sensor-info-value ${sensorData.turbidity <= 1 ? 'good' : 'moderate'}">${sensorData.turbidity} NTU</div>
+            </div>
+            <div class="sensor-info-card">
+              <div class="sensor-info-label">Chlorine Level</div>
+              <div class="sensor-info-value ${sensorData.chlorine >= 0.2 && sensorData.chlorine <= 2 ? 'good' : 'moderate'}">${sensorData.chlorine} mg/L</div>
+            </div>
+            <div class="sensor-info-card">
+              <div class="sensor-info-label">Charging Status</div>
+              <div class="charging-status">
+                <div class="charging-indicator ${chargingClass}"></div>
+                <div class="sensor-info-value" style="font-size: 16px; text-transform: capitalize;">${sensorData.chargingStatus}</div>
+              </div>
+            </div>
+            <div class="sensor-info-card">
+              <div class="sensor-info-label">Battery Level</div>
+              <div class="sensor-info-value ${batteryClass}">${sensorData.batteryLevel}%</div>
+            </div>
+            <div class="sensor-info-card">
+              <div class="sensor-info-label">Status</div>
+              <div class="sensor-info-value ${sensorData.status === 'online' ? 'good' : 'poor'}" style="text-transform: capitalize;">${sensorData.status}</div>
+            </div>
+            <div class="sensor-info-card">
+              <div class="sensor-info-label">Last Update</div>
+              <div class="sensor-info-value" style="font-size: 14px;">${sensorData.lastUpdate}</div>
+            </div>
+          `;
+        } else {
+          // AQI sensor data
+          const aqiClass = sensorData.aqi <= 30 ? 'good' : sensorData.aqi <= 60 ? 'moderate' : 'poor';
+          const batteryClass = sensorData.batteryLevel > 60 ? 'good' : sensorData.batteryLevel > 30 ? 'moderate' : 'poor';
+          const chargingClass = sensorData.chargingStatus === 'charging' ? 'charging' : 
+                               sensorData.batteryLevel > 30 ? 'low' : 'critical';
+          
+          contentHTML += `
+            <div class="sensor-info-card">
+              <div class="sensor-info-label">Current AQI</div>
+              <div class="sensor-info-value ${aqiClass}">${sensorData.aqi} µg/m³</div>
+            </div>
+            <div class="sensor-info-card">
+              <div class="sensor-info-label">PM2.5</div>
+              <div class="sensor-info-value ${aqiClass}">${sensorData.pm25} µg/m³</div>
+            </div>
+            <div class="sensor-info-card">
+              <div class="sensor-info-label">PM10</div>
+              <div class="sensor-info-value ${aqiClass}">${sensorData.pm10} µg/m³</div>
+            </div>
+            <div class="sensor-info-card">
+              <div class="sensor-info-label">Charging Status</div>
+              <div class="charging-status">
+                <div class="charging-indicator ${chargingClass}"></div>
+                <div class="sensor-info-value" style="font-size: 16px; text-transform: capitalize;">${sensorData.chargingStatus}</div>
+              </div>
+            </div>
+            <div class="sensor-info-card">
+              <div class="sensor-info-label">Battery Level</div>
+              <div class="sensor-info-value ${batteryClass}">${sensorData.batteryLevel}%</div>
+            </div>
+            <div class="sensor-info-card">
+              <div class="sensor-info-label">Temperature</div>
+              <div class="sensor-info-value">${sensorData.temperature}°C</div>
+            </div>
+            <div class="sensor-info-card">
+              <div class="sensor-info-label">Humidity</div>
+              <div class="sensor-info-value">${sensorData.humidity}%</div>
+            </div>
+            <div class="sensor-info-card">
+              <div class="sensor-info-label">Status</div>
+              <div class="sensor-info-value ${sensorData.status === 'online' ? 'good' : 'poor'}" style="text-transform: capitalize;">${sensorData.status}</div>
+            </div>
+            <div class="sensor-info-card">
+              <div class="sensor-info-label">Last Update</div>
+              <div class="sensor-info-value" style="font-size: 14px;">${sensorData.lastUpdate}</div>
+            </div>
+          `;
+        }
+        
+        content.innerHTML = contentHTML;
+        panel.classList.add('active');
+      }
+
+      // Close sensor side panel
+      function closeSensorPanel() {
+        const panel = document.getElementById('sensor-side-panel');
+        panel.classList.remove('active');
+      }
+
+      // Note: AQI sensor click handler removed as it's replaced with water quality node
+
+      // Close button handler
+      document.getElementById('sensor-panel-close').addEventListener('click', closeSensorPanel);
+
+      // Close panel on Escape key
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+          const panel = document.getElementById('sensor-side-panel');
+          if (panel.classList.contains('active')) {
+            closeSensorPanel();
+          }
+          // Also close ward selection dialog
+          const wardDialog = document.getElementById('ward-selection-dialog');
+          if (wardDialog && wardDialog.classList.contains('active')) {
+            closeWardSelectionDialog();
+          }
+        }
+      });
+
+      // Ward Selection Dialog Functions
+      function showWardSelectionDialog() {
+        const dialog = document.getElementById('ward-selection-dialog');
+        const list = document.getElementById('ward-selection-list');
+        
+        if (!dialog || !list) return;
+        
+        // Populate ward list
+        list.innerHTML = '';
+        
+        // Sort wards by name for easier selection
+        const sortedWards = [...allWardsData].sort((a, b) => a.name.localeCompare(b.name));
+        
+        sortedWards.forEach(ward => {
+          const item = document.createElement('div');
+          item.className = `ward-selection-item ${ward.status}`;
+          item.innerHTML = `
+            <div class="ward-selection-item-name">${ward.name}</div>
+            <div class="ward-selection-item-status">${ward.status}</div>
+          `;
+          
+          item.addEventListener('click', () => {
+            selectWardForInspection(ward);
+          });
+          
+          list.appendChild(item);
+        });
+        
+        // Show dialog
+        dialog.classList.add('active');
+        document.body.style.overflow = 'hidden';
+      }
+      
+      function closeWardSelectionDialog() {
+        const dialog = document.getElementById('ward-selection-dialog');
+        if (dialog) {
+          dialog.classList.remove('active');
+          document.body.style.overflow = '';
+        }
+      }
+      
+      function selectWardForInspection(ward) {
+        // Navigate to inspection page with ward info
+        window.location.href = `inspection.html?type=ward&id=${ward.id}&name=${encodeURIComponent(ward.name)}`;
+      }
+      
+      // Close dialog handlers - attach after DOM is ready
+      window.addEventListener('DOMContentLoaded', () => {
+        const cancelBtn = document.getElementById('ward-selection-cancel');
+        const overlay = document.querySelector('.ward-selection-overlay');
+        if (cancelBtn) {
+          cancelBtn.addEventListener('click', closeWardSelectionDialog);
+        }
+        if (overlay) {
+          overlay.addEventListener('click', closeWardSelectionDialog);
+        }
+      });
+      
+      // Also attach immediately if elements already exist
+      const cancelBtn = document.getElementById('ward-selection-cancel');
+      const overlay = document.querySelector('.ward-selection-overlay');
+      if (cancelBtn) {
+        cancelBtn.addEventListener('click', closeWardSelectionDialog);
+      }
+      if (overlay) {
+        overlay.addEventListener('click', closeWardSelectionDialog);
+      }
+    </script>
+  
+  <!-- Ward Selection Dialog -->
+  <div id="ward-selection-dialog" class="ward-selection-dialog">
+    <div class="ward-selection-overlay"></div>
+    <div class="ward-selection-content">
+      <div class="ward-selection-header">
+        <div class="ward-selection-title">Select Ward for Drone Inspection</div>
+        <div class="ward-selection-subtitle">Choose a ward to conduct drone inspection</div>
+      </div>
+      <div class="ward-selection-list" id="ward-selection-list">
+        <!-- Wards will be populated here -->
+      </div>
+      <div class="ward-selection-actions">
+        <button class="ward-selection-btn ward-selection-btn-cancel" id="ward-selection-cancel">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Floating Drone Inspection Button -->
+  <button
+    onclick="showWardSelectionDialog()"
+    style="
+      position: fixed;
+      right: 24px;
+      bottom: 24px;
+      z-index: 1000;
+      background: linear-gradient(135deg, #ff4d6d 0%, #ff6b6b 100%);
+      color: #0b1220;
+      border: 1px solid #ff8a8a;
+      padding: 12px 18px;
+      border-radius: 9999px;
+      font-family: 'Outfit', sans-serif;
+      font-weight: 700;
+      letter-spacing: 0.4px;
+      box-shadow: 0 8px 24px rgba(255, 107, 107, 0.35), inset 0 0 12px rgba(255,255,255,0.15);
+      cursor: pointer;
+      backdrop-filter: blur(6px);
+      -webkit-backdrop-filter: blur(6px);
+      transition: transform 200ms ease, box-shadow 200ms ease, filter 200ms ease;
+    "
+    onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 10px 28px rgba(255,107,107,0.45), inset 0 0 14px rgba(255,255,255,0.22)';"
+    onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 8px 24px rgba(255,107,107,0.35), inset 0 0 12px rgba(255,255,255,0.15)';"
+    aria-label="Start Drone Inspection"
+  >
+    🚁 Drone Inspection
+  </button>
+  </body>
+</html>
+

@@ -1,0 +1,657 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Electricity Theft Detection - Nagardarpan</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+  
+  <!-- Firebase SDK (Compat version for global firebase object) -->
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+  
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    :root {
+      --bg: #0b1220;
+      --card: rgba(9, 14, 26, 0.8);
+      --card-border: rgba(255,255,255,0.1);
+      --text: #ffffff;
+      --muted: rgba(255,255,255,0.6);
+      --accent: #18e0b5;
+      --danger: #ff6b6b;
+      --success: #43ff88;
+      --warning: #ffc857;
+    }
+    
+    body {
+      font-family: 'Outfit', sans-serif;
+      background: linear-gradient(135deg, #0b1220 0%, #1a2332 100%);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    
+    .container {
+      width: 100%;
+      max-width: 500px;
+      background: var(--card);
+      border: 1px solid var(--card-border);
+      border-radius: 24px;
+      padding: 48px 32px;
+      backdrop-filter: blur(16px) saturate(180%);
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(255, 255, 255, 0.05) inset;
+      text-align: center;
+    }
+    
+    .header {
+      margin-bottom: 32px;
+    }
+    
+    .header-icon {
+      font-size: 64px;
+      margin-bottom: 16px;
+      animation: pulse 2s ease-in-out infinite;
+    }
+    
+    @keyframes pulse {
+      0%, 100% { 
+        transform: scale(1); 
+        opacity: 1; 
+      }
+      50% { 
+        transform: scale(1.1); 
+        opacity: 0.8; 
+      }
+    }
+    
+    .header-title {
+      font-size: 28px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      margin-bottom: 8px;
+      background: linear-gradient(135deg, var(--accent), var(--success));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    
+    .header-subtitle {
+      font-size: 14px;
+      color: var(--muted);
+      line-height: 1.5;
+    }
+    
+    .status-card {
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid var(--card-border);
+      border-radius: 16px;
+      padding: 20px;
+      margin-bottom: 32px;
+    }
+    
+    .status-label {
+      font-size: 12px;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 8px;
+      font-weight: 600;
+    }
+    
+    .status-value {
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--muted);
+    }
+    
+    .status-value.active {
+      color: var(--danger);
+      animation: blink 1s ease-in-out infinite;
+    }
+    
+    @keyframes blink {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+    
+    .theft-btn {
+      width: 100%;
+      padding: 18px 32px;
+      background: linear-gradient(135deg, #ff6b6b, #ff5252);
+      border: none;
+      border-radius: 16px;
+      color: #0b1220;
+      font-family: 'Outfit', sans-serif;
+      font-size: 18px;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+      cursor: pointer;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      box-shadow: 0 8px 24px rgba(255, 107, 107, 0.3), inset 0 0 12px rgba(255,255,255,0.15);
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .theft-btn::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: rgba(255, 255, 255, 0.2);
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+    
+    .theft-btn:hover::before {
+      opacity: 1;
+    }
+    
+    .theft-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 12px 32px rgba(255, 107, 107, 0.4), inset 0 0 16px rgba(255,255,255,0.2);
+    }
+    
+    .theft-btn:active {
+      transform: translateY(0);
+    }
+    
+    .theft-btn:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      transform: none;
+    }
+    
+    .success-message {
+      margin-top: 20px;
+      padding: 12px 16px;
+      background: rgba(67, 255, 136, 0.1);
+      border: 1px solid rgba(67, 255, 136, 0.3);
+      border-radius: 12px;
+      color: var(--success);
+      font-size: 14px;
+      font-weight: 600;
+      display: none;
+      animation: slideIn 0.3s ease;
+    }
+    
+    .success-message.show {
+      display: block;
+    }
+    
+    @keyframes slideIn {
+      from {
+        opacity: 0;
+        transform: translateY(-10px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+    
+    .error-message {
+      margin-top: 20px;
+      padding: 12px 16px;
+      background: rgba(255, 107, 107, 0.1);
+      border: 1px solid rgba(255, 107, 107, 0.3);
+      border-radius: 12px;
+      color: var(--danger);
+      font-size: 14px;
+      font-weight: 600;
+      display: none;
+      animation: slideIn 0.3s ease;
+    }
+    
+    .error-message.show {
+      display: block;
+    }
+    
+    .loading {
+      display: inline-block;
+      width: 16px;
+      height: 16px;
+      border: 3px solid rgba(11, 18, 32, 0.3);
+      border-top-color: #0b1220;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      margin-right: 8px;
+      vertical-align: middle;
+    }
+    
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    
+    .info-text {
+      margin-top: 24px;
+      font-size: 12px;
+      color: var(--muted);
+      line-height: 1.6;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <div class="header-icon">⚡</div>
+      <h1 class="header-title">Electricity Theft Detection</h1>
+      <p class="header-subtitle">Trigger electricity theft alert in the system</p>
+    </div>
+    
+    <div class="status-card">
+      <div class="status-label">Theft Alert Status</div>
+      <div class="status-value" id="theft-status">No Alert</div>
+      <div style="font-size: 11px; color: var(--muted); margin-top: 8px; font-weight: 500;">
+        Firebase value: <span id="theft-value">-</span>
+      </div>
+    </div>
+    
+    <button class="theft-btn" id="theft-btn">
+      🚨 Report Theft
+    </button>
+    
+    <button class="theft-btn" id="tds-btn" style="margin-top: 16px; background: linear-gradient(135deg, #18e0b5, #43ff88); box-shadow: 0 8px 24px rgba(24, 224, 181, 0.3), inset 0 0 12px rgba(255,255,255,0.15);">
+      💧 Trigger TDS Alert
+    </button>
+    
+    <div class="success-message" id="success-message">
+      ✓ Theft alert triggered successfully!
+    </div>
+    
+    <div class="error-message" id="error-message">
+      ✗ Failed to trigger theft alert. Please try again.
+    </div>
+    
+    <div class="success-message" id="tds-success-message" style="display: none;">
+      ✓ TDS alert triggered successfully!
+    </div>
+    
+    <div class="error-message" id="tds-error-message" style="display: none;">
+      ✗ Failed to trigger TDS alert. Please try again.
+    </div>
+    
+    <p class="info-text">
+      <strong>How it works:</strong><br>
+      • Click "Report Theft" to set Firebase /theft node to 1<br>
+      • Status shows "ACTIVE" when value is 1 (alert triggered)<br>
+      • Status shows "Inactive" when value is 0 or null (no alert)<br>
+      • The status updates in real-time from Firebase
+    </p>
+  </div>
+
+  <script>
+    // Firebase configuration
+    const firebaseConfig = {
+      apiKey: "AIzaSyA27lgwgBhByNuye_b5hVOZTeK7IjLLbis",
+      authDomain: "saarthi-84622.firebaseapp.com",
+      databaseURL: "https://saarthi-84622-default-rtdb.asia-southeast1.firebasedatabase.app/",
+      projectId: "saarthi-84622",
+      storageBucket: "saarthi-84622.appspot.com",
+      messagingSenderId: "your-sender-id",
+      appId: "your-app-id"
+    };
+    
+    // Initialize Firebase
+    firebase.initializeApp(firebaseConfig);
+    const database = firebase.database();
+    const auth = firebase.auth();
+    
+    // UI elements
+    const theftBtn = document.getElementById('theft-btn');
+    const tdsBtn = document.getElementById('tds-btn');
+    const theftStatus = document.getElementById('theft-status');
+    const theftValueDisplay = document.getElementById('theft-value');
+    const successMessage = document.getElementById('success-message');
+    const errorMessage = document.getElementById('error-message');
+    const tdsSuccessMessage = document.getElementById('tds-success-message');
+    const tdsErrorMessage = document.getElementById('tds-error-message');
+    
+    // Authentication state
+    let isAuthenticated = false;
+    let authPromise = null;
+    
+    // Authenticate with Firebase
+    function authenticateFirebase() {
+      console.log("Starting Firebase authentication...");
+      authPromise = auth.signInWithEmailAndPassword("naman.saarthi@gmail.com", "12345678")
+        .then((userCredential) => {
+          isAuthenticated = true;
+          console.log("Firebase authenticated successfully", userCredential.user);
+          
+          // Enable buttons after authentication
+          theftBtn.disabled = false;
+          tdsBtn.disabled = false;
+          
+          // Listen to theft status
+          database.ref('/theft').on('value', (snapshot) => {
+            const theftValue = snapshot.val();
+            console.log("Theft value from Firebase:", theftValue);
+            
+            // Update the value display
+            const theftValueDisplay = document.getElementById('theft-value');
+            if (theftValueDisplay) {
+              theftValueDisplay.textContent = theftValue !== null ? theftValue : 'null';
+            }
+            
+            // Update status based on value
+            if (theftValue === 1 || theftValue === "1") {
+              theftStatus.textContent = 'ACTIVE - Alert Triggered';
+              theftStatus.classList.add('active');
+            } else if (theftValue === 0 || theftValue === "0") {
+              theftStatus.textContent = 'Inactive - No Alert';
+              theftStatus.classList.remove('active');
+            } else if (theftValue === null || theftValue === undefined) {
+              theftStatus.textContent = 'No Value Set';
+              theftStatus.classList.remove('active');
+            } else {
+              theftStatus.textContent = 'Inactive - No Alert';
+              theftStatus.classList.remove('active');
+            }
+          }, (error) => {
+            console.error("Firebase theft listener error:", error);
+          });
+          
+          // Test write to verify connection
+          return database.ref('/theft').once('value');
+        })
+        .then((snapshot) => {
+          console.log("Current theft value:", snapshot.val());
+        })
+        .catch((error) => {
+          console.error("Firebase authentication error:", error);
+          console.error("Error code:", error.code);
+          console.error("Error message:", error.message);
+          errorMessage.textContent = `Authentication failed: ${error.message}. Please refresh the page.`;
+          errorMessage.classList.add('show');
+          theftBtn.disabled = true;
+        });
+    }
+    
+    // Trigger theft alert
+    function triggerTheft() {
+      console.log("Trigger theft button clicked");
+      console.log("Authentication status:", isAuthenticated);
+      
+      // Wait for authentication if not yet complete
+      if (!isAuthenticated && authPromise) {
+        console.log("Waiting for authentication...");
+        errorMessage.textContent = "Authenticating... Please wait...";
+        errorMessage.classList.add('show');
+        authPromise.then(() => {
+          errorMessage.classList.remove('show');
+          triggerTheft(); // Retry after authentication
+        }).catch(() => {
+          errorMessage.textContent = "Authentication failed. Please refresh the page.";
+        });
+        return;
+      }
+      
+      if (!isAuthenticated) {
+        errorMessage.textContent = "Not authenticated. Please wait...";
+        errorMessage.classList.add('show');
+        setTimeout(() => errorMessage.classList.remove('show'), 3000);
+        return;
+      }
+      
+      // Disable button and show loading
+      theftBtn.disabled = true;
+      theftBtn.innerHTML = '<span class="loading"></span>Triggering...';
+      
+      // Hide previous messages
+      successMessage.classList.remove('show');
+      errorMessage.classList.remove('show');
+      
+      console.log("Updating Firebase /theft to 1...");
+      console.log("Current auth state:", auth.currentUser);
+      console.log("Is authenticated:", isAuthenticated);
+      
+      // Ensure we're authenticated before writing
+      if (!auth.currentUser) {
+        console.log("No current user, re-authenticating...");
+        auth.signInWithEmailAndPassword("naman.saarthi@gmail.com", "12345678")
+          .then(() => {
+            console.log("Re-authenticated, retrying write...");
+            triggerTheft(); // Retry after re-auth
+          })
+          .catch((authError) => {
+            console.error("Re-authentication failed:", authError);
+            errorMessage.textContent = `Auth failed: ${authError.message}`;
+            errorMessage.classList.add('show');
+            theftBtn.disabled = false;
+            theftBtn.innerHTML = '🚨 Report Theft';
+          });
+        return;
+      }
+      
+      // Update Firebase with explicit error handling
+      const theftRef = database.ref('/theft');
+      
+      console.log("Attempting to write to Firebase...");
+      theftRef.set(1)
+        .then(() => {
+          console.log("Set operation completed, verifying...");
+          
+          // Wait a moment then verify
+          return new Promise((resolve) => {
+            setTimeout(() => {
+              theftRef.once('value').then((snapshot) => {
+                resolve(snapshot);
+              });
+            }, 500);
+          });
+        })
+        .then((snapshot) => {
+          const value = snapshot.val();
+          console.log("Verified theft value:", value);
+          console.log("Value type:", typeof value);
+          
+          if (value === 1 || value === "1" || parseInt(value) === 1) {
+            console.log("SUCCESS: Value is 1");
+            successMessage.classList.add('show');
+            
+            // Reset button after 2 seconds
+            setTimeout(() => {
+              theftBtn.disabled = false;
+              theftBtn.innerHTML = '🚨 Report Theft';
+              successMessage.classList.remove('show');
+            }, 2000);
+          } else {
+            console.error("Value mismatch. Expected 1, got:", value);
+            throw new Error(`Value not set correctly. Got: ${value}`);
+          }
+        })
+        .catch((error) => {
+          console.error("Error triggering theft:", error);
+          console.error("Error code:", error.code);
+          console.error("Error message:", error.message);
+          console.error("Full error object:", error);
+          
+          // Try alternative write method - using callback
+          console.log("Trying alternative write method with callback...");
+          theftRef.set(1, (error) => {
+            if (error) {
+              console.error("Alternative write failed:", error);
+              console.error("Error code:", error.code);
+              console.error("Error message:", error.message);
+              errorMessage.textContent = `Failed: ${error.message || error.code}. Check Firebase database rules.`;
+              errorMessage.classList.add('show');
+              theftBtn.disabled = false;
+              theftBtn.innerHTML = '🚨 Report Theft';
+            } else {
+              console.log("Alternative write succeeded!");
+              successMessage.textContent = "✓ Theft alert triggered!";
+              successMessage.classList.add('show');
+              setTimeout(() => {
+                theftBtn.disabled = false;
+                theftBtn.innerHTML = '🚨 Report Theft';
+                successMessage.classList.remove('show');
+              }, 2000);
+            }
+          });
+        });
+    }
+    
+    // Trigger TDS alert
+    function triggerTDS() {
+      console.log("Trigger TDS button clicked");
+      console.log("Authentication status:", isAuthenticated);
+      
+      // Wait for authentication if not yet complete
+      if (!isAuthenticated && authPromise) {
+        console.log("Waiting for authentication...");
+        tdsErrorMessage.textContent = "Authenticating... Please wait...";
+        tdsErrorMessage.style.display = 'block';
+        authPromise.then(() => {
+          tdsErrorMessage.style.display = 'none';
+          triggerTDS(); // Retry after authentication
+        }).catch(() => {
+          tdsErrorMessage.textContent = "Authentication failed. Please refresh the page.";
+        });
+        return;
+      }
+      
+      if (!isAuthenticated) {
+        tdsErrorMessage.textContent = "Not authenticated. Please wait...";
+        tdsErrorMessage.style.display = 'block';
+        setTimeout(() => tdsErrorMessage.style.display = 'none', 3000);
+        return;
+      }
+      
+      // Disable button and show loading
+      tdsBtn.disabled = true;
+      tdsBtn.innerHTML = '<span class="loading"></span>Triggering...';
+      
+      // Hide previous messages
+      tdsSuccessMessage.style.display = 'none';
+      tdsErrorMessage.style.display = 'none';
+      
+      console.log("Updating Firebase /tds to 1...");
+      
+      // Ensure we're authenticated before writing
+      if (!auth.currentUser) {
+        console.log("No current user, re-authenticating...");
+        auth.signInWithEmailAndPassword("naman.saarthi@gmail.com", "12345678")
+          .then(() => {
+            console.log("Re-authenticated, retrying write...");
+            triggerTDS(); // Retry after re-auth
+          })
+          .catch((authError) => {
+            console.error("Re-authentication failed:", authError);
+            tdsErrorMessage.textContent = `Auth failed: ${authError.message}`;
+            tdsErrorMessage.style.display = 'block';
+            tdsBtn.disabled = false;
+            tdsBtn.innerHTML = '💧 Trigger TDS Alert';
+          });
+        return;
+      }
+      
+      // Update Firebase
+      const tdsRef = database.ref('/tds');
+      
+      console.log("Attempting to write TDS to Firebase...");
+      tdsRef.set(1)
+        .then(() => {
+          console.log("TDS set operation completed, verifying...");
+          
+          // Wait a moment then verify
+          return new Promise((resolve) => {
+            setTimeout(() => {
+              tdsRef.once('value').then((snapshot) => {
+                resolve(snapshot);
+              });
+            }, 500);
+          });
+        })
+        .then((snapshot) => {
+          const value = snapshot.val();
+          console.log("Verified TDS value:", value);
+          
+          if (value === 1 || value === "1" || parseInt(value) === 1) {
+            console.log("SUCCESS: TDS value is 1");
+            tdsSuccessMessage.style.display = 'block';
+            
+            // Reset button after 2 seconds
+            setTimeout(() => {
+              tdsBtn.disabled = false;
+              tdsBtn.innerHTML = '💧 Trigger TDS Alert';
+              tdsSuccessMessage.style.display = 'none';
+            }, 2000);
+          } else {
+            console.error("TDS value mismatch. Expected 1, got:", value);
+            throw new Error(`TDS value not set correctly. Got: ${value}`);
+          }
+        })
+        .catch((error) => {
+          console.error("Error triggering TDS:", error);
+          console.error("Error code:", error.code);
+          console.error("Error message:", error.message);
+          
+          // Try alternative write method - using callback
+          console.log("Trying alternative TDS write method with callback...");
+          tdsRef.set(1, (error) => {
+            if (error) {
+              console.error("Alternative TDS write failed:", error);
+              tdsErrorMessage.textContent = `Failed: ${error.message || error.code}. Check Firebase database rules.`;
+              tdsErrorMessage.style.display = 'block';
+              tdsBtn.disabled = false;
+              tdsBtn.innerHTML = '💧 Trigger TDS Alert';
+            } else {
+              console.log("Alternative TDS write succeeded!");
+              tdsSuccessMessage.textContent = "✓ TDS alert triggered!";
+              tdsSuccessMessage.style.display = 'block';
+              setTimeout(() => {
+                tdsBtn.disabled = false;
+                tdsBtn.innerHTML = '💧 Trigger TDS Alert';
+                tdsSuccessMessage.style.display = 'none';
+              }, 2000);
+            }
+          });
+        });
+    }
+    
+    // Event listeners
+    theftBtn.addEventListener('click', triggerTheft);
+    tdsBtn.addEventListener('click', triggerTDS);
+    
+    // Initialize on page load
+    window.addEventListener('DOMContentLoaded', () => {
+      console.log("Page loaded, initializing Firebase...");
+      
+      // Disable buttons initially
+      theftBtn.disabled = true;
+      tdsBtn.disabled = true;
+      
+      // Check if Firebase is loaded
+      if (typeof firebase === 'undefined') {
+        console.error("Firebase SDK not loaded!");
+        errorMessage.textContent = "Firebase SDK not loaded. Check your internet connection.";
+        errorMessage.classList.add('show');
+        return;
+      }
+      
+      console.log("Firebase SDK loaded, starting authentication...");
+      authenticateFirebase();
+    });
+    
+    // Also try on window load as backup
+    window.addEventListener('load', () => {
+      if (!isAuthenticated && !authPromise) {
+        console.log("Window loaded, retrying authentication...");
+        authenticateFirebase();
+      }
+    });
+  </script>
+</body>
+</html>
+
