@@ -430,7 +430,7 @@ Please ensure your code follows the existing style conventions and includes rele
 
 ## License
 
-This project is built for [Innotech 2025](https://innotech.com). All rights reserved.
+This project is built for [Innotech 2025]([https://innotech.com](https://www.linkedin.com/feed/update/urn:li:activity:7396918764568502272/)https://www.linkedin.com/feed/update/urn:li:activity:7396918764568502272/). All rights reserved.
 
 ---
 
